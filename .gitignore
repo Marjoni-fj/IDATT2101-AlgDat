@@ -1,0 +1,36 @@
+# Compiled files
+*.class
+*.o
+*.out
+a.out
+
+# VS Code
+.vscode
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv
+
+# Mac
+.DS_Store
+**/.DS_Store
+
+# IntelliJ
+.idea
+
+# Store datafiler som ikke skal på GitHub
+*.bin
+*.csv
+*.txt
+
+# Executable filer (kompilerte C-programmer uten extension)
+Oving1
+Oving2
+Oving3
+Oving4
+Oving5
+Oving6
+Oving7
+Oving8
