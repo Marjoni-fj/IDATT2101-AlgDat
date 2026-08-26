@@ -180,7 +180,8 @@ where the function will store the indices of the best buy and sell days.
 
 /*
 startIdx is the first course change included in the return.
-Therefore, the actual purchase happens after the previous day.
+Therefore, the purchase happens after the previous day,
+while i + 1 represents the day after the last included change.
 */
 int getHighestReturn(IntArray *arr, int size, int *result) {
     int highestReturn = 0;
@@ -195,9 +196,7 @@ int getHighestReturn(IntArray *arr, int size, int *result) {
             // return is non-positive
         } else {
             currentReturn += arr->data[i];
-            // in the case of a positive current return, we add the current
-            // day's change to it"Hvor mye har vi tjent dersom vi startet denne
-            // perioden?"
+            // Add today's current chnage to the current return.
         }
 
         if (currentReturn > highestReturn) {
