@@ -28,6 +28,7 @@ IntArray *createIntArray(int initialCapacity) {
                                      // integers, hence the "sizeof(int)"
     arr->capacity = initialCapacity;
     arr->length = 0;
+    add(arr, rand() % 20 - 10); // Random values between -10 and 9
 
     return arr;
 }
