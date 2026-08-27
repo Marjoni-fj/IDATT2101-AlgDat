@@ -49,9 +49,6 @@ void add(IntArray *arr, int value) {
 } /* Literally: hvis vi har nådd kapasiteten, dobbel kapasitet, reallocate i
      memory, og legg til verdi */
 
-void randomlist(IntArray *arr, int size);
-int getHighestReturn(IntArray *arr, int size, int *result);
-
 /*
 Vi har ei tallrekke som angir forandring i kurs
 for en aksje fra dag til dag
@@ -62,7 +59,7 @@ og salgspris. kjøp må selvsalgt skje før salg
 
 int main() {
     srand(time(NULL));
-    int size1 = 10000, size2 = 20000, size3 = 100000;
+    int size1 = 100000, size2 = 200000, size3 = 1000000;
 
     IntArray *arr1 = createIntArray(size1);
     randomlist(arr1, size1);
@@ -211,44 +208,58 @@ int getHighestReturn(IntArray *arr, int size, int *result) {
 
 void randomlist(IntArray *arr, int size) {
     for (int i = 0; i < size; i++) {
-        add(arr, rand() % 20 - 10); // Random values between -10 and 9
+        add(arr, rand() % 21 - 10); // Random values between -10 and 10
     }
 }
 
 /* 1-2
 Algoritmen går gjennom hele arrayet én gang med en for-løkke.
-Løkken utføres n ganger, der n er antall elementer i arrayet.
+Løkka utføres n ganger (input-størrelsen varierer og er ikke konstant)
+og går over alle elementene én gang. Det finnes derfor en konstant c1
+slik at 0 <= f(n) <= c1*g(n), og f(n) er i O(n), g(n) = n.
 
-For hver iterasjon utføres et konstant antall operasjoner. Det er ingen nested
-løkker inne i løkken, og mengden arbeid per element endrer seg ikke med
-størrelsen på arrayet.
+Hver iterasjon gjør et konstant antall operasjoner uansett (if/else-
+sjekk, sammenligning, evt. addisjon/tilordning) og hopper ikke over
+noen indekser i løkka. Dermed finnes det en konstant c2 slik at
+0 <= c2*g(n) <= f(n), og f(n) er i Ω(n), g(n) = n.
 
-Dermed er tidskompleksiteten O(n).
+Siden algoritmen både er O(n) og Ω(n), er alrgoritmen Θ(n), altså lineær
+(O(n) og Ω(n) => Θ(n)), siden man uansett må gå gjennom alle elementene i lista
+for å garantere at man finner riktig maks-fortjeneste, og øvre og nedre grense
+begge er lineære. f(n) er i Θ(n).
 
-Algoritmen har også en nedre grense på Ω(n), fordi den må gå gjennom
-alle elementene for å kunne finne den høyeste fortjenesten.
-
-Siden algoritmen både er O(n) og Ω(n), er den Θ(n), altså lineær.
+Fra asymptotisk analyse telles ikke konstante faktorer med, så if- og
+else-grenene i løkka (enten reset av currentReturn, eller addisjon til
+currentReturn, pluss sammenligningen mot highestReturn) påvirker bare
+konstantene c1 og c2 - ikke selve vekstordenen.
 */
 
 /* 1-3
 
 Tidsmålinger:
 
-n = 10 000:   0.000016285 sekunder
-n = 20 000:   0.000027976 sekunder
-n = 100 000:  0.000172284 sekunder
+n = 100 000:    0.000140613 sekunder
+n = 200 000:    0.000273717 sekunder
+n = 1 000 000:  0.001364968 sekunder
 
-Når n dobles fra 10 000 til 20 000, øker kjøretiden med omtrent
-1.72 ganger.
+Når n dobles fra 100 000 til 200 000, øker kjøretiden med omtrent
+1.95 ganger.
 
-Når n økes fra 10 000 til 100 000, økes n med 10 ganger, mens
-kjøretiden øker med omtrent 10.58 ganger.
+Når n økes fra 100 000 til 1 000 000, økes n med 10 ganger, mens
+kjøretiden øker med omtrent 9.71 ganger.
 
-Dette er omtrent det vi forventer av en lineær algoritme. Målingene
-er ikke helt proporsjonale, noe som kan skyldes måleusikkerhet og
-andre prosesser som kjører på datamaskinen.
+Dette stemmer svært godt med det vi forventer av en lineær algoritme
+(dobling av n -> ~dobling av tid, tidobling av n -> ~tidobling av tid).
 
-Målingene støtter derfor den teoretiske analysen om at algoritmen
-har tidskompleksitet Θ(n).
+I en tidligere testrunde med mindre n (10 000 / 20 000 / 100 000) var
+vekstfaktorene noe lavere enn forventet (henholdsvis ~1.6x og ~8.1x).
+Dette skyldes trolig et lite, konstant overhead-ledd i kjøretiden
+(funksjonskall, oppsett av løkka, klokkeoppløsning) som utgjør en
+relativt større andel av total tid ved små n. Ved å øke n slik at
+det lineære leddet dominerer mer, ser vi at vekstfaktorene nærmer
+seg de teoretisk forventede 2x og 10x tydelig, noe som støtter
+overhead-forklaringen.
+
+Målingene bekrefter dermed den teoretiske analysen fra 1-2 om at
+algoritmen har tidskompleksitet Θ(n).
 */
