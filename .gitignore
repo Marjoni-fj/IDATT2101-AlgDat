@@ -26,10 +26,10 @@ __pycache__/
 *.txt
 
 # Executable filer (kompilerte C-programmer uten extension)
-oving1
-oving2
-oving3
-oving4
-oving5
-oving6
-oving7
+ovinger/oving1/oving1
+ovinger/oving2/oving2
+ovinger/oving3/oving3
+ovinger/oving4/oving4
+ovinger/oving5/oving5
+ovinger/oving6/oving6
+ovinger/oving7/oving7
