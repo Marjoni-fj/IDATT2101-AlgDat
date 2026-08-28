@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -19,9 +20,8 @@ float method2(int n, float x) {
     }
     if (n % 2 == 0) {
         return method2(n / 2, x * x);
-    } else {
-        return x * method2((n - 1) / 2, x * x);
     }
+    return x * method2((n - 1) / 2, x * x);
 }
 
 int main() {
