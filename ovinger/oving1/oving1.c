@@ -4,12 +4,9 @@
 
 /*DISCLAIMER:
 Denne koden er ikke samarbeidet med andre og alt innhold er kun skrevet av meg,
-Fredrik Jonathan Marjoni Footnotene som er skrevet i koden var kun for å hjelpe
-meg selv med å forstå koden og er ikke ment for å være en del av innleveringen
-*/
-
-/*
-NOTE:
+Fredrik Jonathan Marjoni. Noen av footnotene som er skrevet i koden var kun for
+å hjelpe meg selv med å forstå koden og er ikke ment for å være en del av
+innleveringen
 */
 
 /*
@@ -24,8 +21,8 @@ typedef struct {
 } IntArray;
 
 void add(IntArray *arr, int value);
-
 void randomlist(IntArray *arr, int size);
+
 int getHighestReturn(IntArray *arr, int size, int *result);
 /* this is kind of the equivalent of a constructor in Java where you asign the
  * attributes of the object */
@@ -167,6 +164,7 @@ int main() {
 
     return 0;
 }
+
 /*
 The function takes in
 IntArray *arr: A pointer to an IntArray structure that contains the array of
@@ -223,10 +221,10 @@ sjekk, sammenligning, evt. addisjon/tilordning) og hopper ikke over
 noen indekser i løkka. Dermed finnes det en konstant c2 slik at
 0 <= c2*g(n) <= f(n), og f(n) er i Ω(n), g(n) = n.
 
-Siden algoritmen både er O(n) og Ω(n), er alrgoritmen Θ(n), altså lineær
-(O(n) og Ω(n) => Θ(n)), siden man uansett må gå gjennom alle elementene i lista
-for å garantere at man finner riktig maks-fortjeneste, og øvre og nedre grense
-begge er lineære. f(n) er i Θ(n).
+Siden algoritmen både er O(n) og Ω(n), er algoritmen Θ(n), altså lineær
+tidskompleksitet (O(n) og Ω(n) => Θ(n)), siden man uansett må gå gjennom alle
+elementene i lista for å garantere at man finner riktig maks-fortjeneste, og
+øvre og nedre grense begge er lineære. f(n) er i Θ(n).
 
 Fra asymptotisk analyse telles ikke konstante faktorer med, så if- og
 else-grenene i løkka (enten reset av currentReturn, eller addisjon til
