@@ -73,6 +73,7 @@ int main() {
     double total_time_used;
     double single_run_time;
     int reps;
+    const int trials = 5;
 
     // --- EXAMPLE ARRAY FROM THE CURRICULUM ---
     int example[] = {-1, 3, -9, 2, 2, -1, 2, -1, -5};
@@ -95,65 +96,89 @@ int main() {
     dag 7: (2 + 2 - 1 + 2 = 5). Dette tilsvarer å kjøpe etter kursfallet på dag
     3 og selge etter kursoppgangen på dag 7, slik eksempelet i boka beskriver.
     */
-
     // --- ARRAY 1 ---
-    reps = 1000;
     int return1 = 0;
+    double best_time1 = 1e9;
 
-    start = clock();
-    for (int i = 0; i < reps; i++) {
-        return1 = getHighestReturn(arr1, arr1->length, result_1);
+    for (int trial = 0; trial < trials; trial++) {
+        reps = 1000;
+        start = clock();
+        for (int i = 0; i < reps; i++) {
+            return1 = getHighestReturn(arr1, arr1->length, result_1);
+        }
+        end = clock();
+
+        total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+        single_run_time = total_time_used / reps;
+
+        if (single_run_time < best_time1) {
+            best_time1 = single_run_time;
+        }
     }
-    end = clock();
-
-    total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    single_run_time = total_time_used / reps;
 
     printf("=== ARRAY 1 (%d elementer) ===\n", arr1->length);
     printf("Høyeste fortjeneste: %d\n", return1);
     printf("Kjøp etter dag: %d, Salg etter dag: %d\n", result_1[0],
            result_1[1]);
-    printf("Antall test-repetisjoner: %d\n", reps);
-    printf("Tid brukt per kjøring: %11.9f sekunder\n\n", single_run_time);
+    printf("Antall test-repetisjoner per forsøk: %d\n", reps);
+    printf("Antall forsøk (beste tid brukes): %d\n", trials);
+    printf("Beste tid per kjøring: %11.9f sekunder\n\n", best_time1);
 
     // --- ARRAY 2 ---
-    reps = 1000;
     int return2 = 0;
+    double best_time2 = 1e9;
 
-    start = clock();
-    for (int i = 0; i < reps; i++) {
-        return2 = getHighestReturn(arr2, arr2->length, result_2);
+    for (int trial = 0; trial < trials; trial++) {
+        reps = 1000;
+        start = clock();
+        for (int i = 0; i < reps; i++) {
+            return2 = getHighestReturn(arr2, arr2->length, result_2);
+        }
+        end = clock();
+
+        total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+        single_run_time = total_time_used / reps;
+
+        if (single_run_time < best_time2) {
+            best_time2 = single_run_time;
+        }
     }
-    end = clock();
-
-    total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    single_run_time = total_time_used / reps;
 
     printf("=== ARRAY 2 (%d elementer) ===\n", arr2->length);
     printf("Høyeste fortjeneste: %d\n", return2);
     printf("Kjøp etter dag: %d, Salg etter dag: %d\n", result_2[0],
            result_2[1]);
-    printf("Antall test-repetisjoner: %d\n", reps);
-    printf("Tid brukt per kjøring: %11.9f sekunder\n\n", single_run_time);
+    printf("Antall test-repetisjoner per forsøk: %d\n", reps);
+    printf("Antall forsøk (beste tid brukes): %d\n", trials);
+    printf("Beste tid per kjøring: %11.9f sekunder\n\n", best_time2);
 
     // --- ARRAY 3 ---
-    reps = 1000;
     int return3 = 0;
+    double best_time3 = 1e9;
 
-    start = clock();
-    for (int i = 0; i < reps; i++) {
-        return3 = getHighestReturn(arr3, arr3->length, result_3);
+    for (int trial = 0; trial < trials; trial++) {
+        reps = 1000;
+        start = clock();
+        for (int i = 0; i < reps; i++) {
+            return3 = getHighestReturn(arr3, arr3->length, result_3);
+        }
+        end = clock();
+
+        total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+        single_run_time = total_time_used / reps;
+
+        if (single_run_time < best_time3) {
+            best_time3 = single_run_time;
+        }
     }
-    end = clock();
-    total_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    single_run_time = total_time_used / reps;
 
     printf("=== ARRAY 3 (%d elementer) ===\n", arr3->length);
     printf("Høyeste fortjeneste: %d\n", return3);
     printf("Kjøp etter dag: %d, Salg etter dag: %d\n", result_3[0],
            result_3[1]);
-    printf("Antall test-repetisjoner: %d\n", reps);
-    printf("Tid brukt per kjøring: %11.9f sekunder\n\n", single_run_time);
+    printf("Antall test-repetisjoner per forsøk: %d\n", reps);
+    printf("Antall forsøk (beste tid brukes): %d\n", trials);
+    printf("Beste tid per kjøring: %11.9f sekunder\n\n", best_time3);
 
     free(arr1->data);
     free(arr1);
@@ -234,29 +259,29 @@ konstantene c1 og c2 - ikke selve vekstordenen.
 
 /* 1-3
 
+Tidsmåling gjøres ved å ta beste (laveste) tid av 5 uavhengige forsøk
+per array-størrelse, istedenfor kun ett forsøk. Dette gjøres fordi
+enkeltmålinger kan bli forstyrret av ting utenfor selve algoritmen,
+som CPU-frekvensskalering eller andre prosesser som kjører på
+maskinen samtidig. Slike forstyrrelser kan bare gjøre en kjøring
+tregere enn den reelle hastigheten, aldri raskere - derfor er minste
+målte tid av flere forsøk et mer stabilt og representativt estimat
+på algoritmens faktiske kjøretid.
+
 Tidsmålinger:
 
-n = 100 000:    0.000140613 sekunder
-n = 200 000:    0.000273717 sekunder
-n = 1 000 000:  0.001364968 sekunder
+n = 100 000:    0.000133931 sekunder
+n = 200 000:    0.000266638 sekunder
+n = 1 000 000:  0.001348648 sekunder
 
 Når n dobles fra 100 000 til 200 000, øker kjøretiden med omtrent
-1.95 ganger.
+1.99 ganger.
 
 Når n økes fra 100 000 til 1 000 000, økes n med 10 ganger, mens
-kjøretiden øker med omtrent 9.71 ganger.
+kjøretiden øker med omtrent 10.07 ganger.
 
 Dette stemmer svært godt med det vi forventer av en lineær algoritme
 (dobling av n -> ~dobling av tid, tidobling av n -> ~tidobling av tid).
-
-I en tidligere testrunde med mindre n (10 000 / 20 000 / 100 000) var
-vekstfaktorene noe lavere enn forventet (henholdsvis ~1.6x og ~8.1x).
-Dette skyldes trolig et lite, konstant overhead-ledd i kjøretiden
-(funksjonskall, oppsett av løkka, klokkeoppløsning) som utgjør en
-relativt større andel av total tid ved små n. Ved å øke n slik at
-det lineære leddet dominerer mer, ser vi at vekstfaktorene nærmer
-seg de teoretisk forventede 2x og 10x tydelig, noe som støtter
-overhead-forklaringen.
 
 Målingene bekrefter dermed den teoretiske analysen fra 1-2 om at
 algoritmen har tidskompleksitet Θ(n).
