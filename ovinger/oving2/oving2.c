@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-float method1(int n, float x) {
+double method1(int n, double x) {
     if (n == 0 && x != 0) {
         return 1;
     }
@@ -14,7 +14,7 @@ float method1(int n, float x) {
     }
 }
 
-float method2(int n, float x) {
+double method2(int n, double x) {
     if (n == 0 && x != 0) {
         return 1;
     }
@@ -24,16 +24,16 @@ float method2(int n, float x) {
     return x * method2((n - 1) / 2, x * x);
 }
 
-float method3(int n, float x) { return (float)pow((double)x, (double)n); }
+double method3(int n, double x) { return pow(x, n); }
 
-float method1(int number, float value);
-float method2(int number, float value);
-float method3(int number, float value);
+double method1(int number, double value);
+double method2(int number, double value);
+double method3(int number, double value);
 
-typedef float (*FunctionPointer)(int, float);
+typedef double (*FunctionPointer)(int, double);
 
-void time_tracking(FunctionPointer methodx, int n, float x, int reps) {
-    float result;
+void time_tracking(FunctionPointer methodx, int n, double x, int reps) {
+    double result;
     clock_t start, end;
 
     start = clock();
@@ -51,12 +51,12 @@ void time_tracking(FunctionPointer methodx, int n, float x, int reps) {
 int main() {
     // --- TEST: sjekk at metodene regner riktig, jf. 5^11 = 48828125 ---
     printf("=== TEST ===\n");
-    printf("method1(11, 5.0) = %f (forventet 48828125)\n", method1(11, 5.0f));
-    printf("method2(11, 5.0) = %f (forventet 48828125)\n", method2(11, 5.0f));
-    printf("method3(11, 5.0) = %f (forventet 48828125)\n\n", method3(11, 5.0f));
+    printf("method1(11, 5.0) = %f (forventet 48828125)\n", method1(11, 5.0));
+    printf("method2(11, 5.0) = %f (forventet 48828125)\n", method2(11, 5.0));
+    printf("method3(11, 5.0) = %f (forventet 48828125)\n\n", method3(11, 5.0));
 
     // x settes lavt for å unngå float-overflow ved store n (jf. oppgavetipset)
-    const float x = 1.0025f;
+    const double x = 1.0025;
     const int reps = 100000;
 
     // method1 er lineær rekursjon -> stack overflow-fare ved store n, holdes
