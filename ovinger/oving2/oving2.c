@@ -19,9 +19,9 @@ double method1(int n, double x) {
 }
 
 double method2(int n, double x) {
-    // Basistilfelle: n=1 i formelen fører til rekursivt kall med n=0
-    // (siden (n-1)/2 = 0 når n=1), så n==0 fungerer som det reelle
-    // basistilfellet her. x != 0 er med for å unngå at 0^0 gir 1.
+    /* Basistilfelle: n=1 i formelen fører til rekursivt kall med n=0
+    (siden (n-1)/2 = 0 når n=1), så n==0 fungerer som det reelle
+    basistilfellet her. x != 0 er med for å unngå at 0^0 gir 1.*/
     if (n == 0 && x != 0) {
         return 1;
     }
@@ -62,17 +62,18 @@ int main() {
     printf("method2(11, 5.0) = %f (forventet 48828125)\n", method2(11, 5.0));
     printf("method3(11, 5.0) = %f (forventet 48828125)\n\n", method3(11, 5.0));
 
-    // x settes lavt for å unngå float-overflow ved store n (jf. oppgavetipset)
+    /* x settes lavt for å unngå float-overflow ved store n (jfr. oppgavetipset)
+     */
     const double x = 1.0025;
     const int reps = 100000;
 
-    // method1 er lineær rekursjon -> stack overflow-fare ved store n, holdes
-    // derfor lavere
+    /*method1 er lineær rekursjon -> stack overflow-fare ved store n, holdes
+    derfor lavere */
     int n_values_method1[] = {100, 500, 1000, 2000, 4000};
     int len1 = sizeof(n_values_method1) / sizeof(n_values_method1[0]);
 
-    // method2 og method3 tåler mye høyere n (method2 er logaritmisk i
-    // rekursjonsdybde)
+    /*method2 og method3 tåler mye høyere n (method2 er logaritmisk i
+    rekursjonsdybde)*/
     int n_values_method23[] = {100, 1000, 10000, 100000, 1000000};
     int len23 = sizeof(n_values_method23) / sizeof(n_values_method23[0]);
 
