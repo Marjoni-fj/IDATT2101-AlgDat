@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+/*DISCLAIMER:
+Denne koden er ikke samarbeidet med andre og alt innhold er kun skrevet av meg,
+Fredrik Jonathan Marjoni. Noen av footnotene som er skrevet i koden var kun for
+å hjelpe meg selv med å forstå koden og er ikke ment for å være en del av
+innleveringen
+*/
+
 double method1(int n, double x) {
     if (n == 1) {
         return x;
