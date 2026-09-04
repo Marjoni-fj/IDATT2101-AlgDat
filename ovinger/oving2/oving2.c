@@ -4,9 +4,6 @@
 #include <time.h>
 
 double method1(int n, double x) {
-    if (n == 0 && x != 0) {
-        return 1;
-    }
     if (n == 1) {
         return x;
     } else {
@@ -15,6 +12,9 @@ double method1(int n, double x) {
 }
 
 double method2(int n, double x) {
+    // Basistilfelle: n=1 i formelen fører til rekursivt kall med n=0
+    // (siden (n-1)/2 = 0 når n=1), så n==0 fungerer som det reelle
+    // basistilfellet her. x != 0 er med for å unngå at 0^0 gir 1.
     if (n == 0 && x != 0) {
         return 1;
     }
