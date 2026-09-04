@@ -33,10 +33,6 @@ double method2(int n, double x) {
 
 double method3(int n, double x) { return pow(x, n); }
 
-double method1(int number, double value);
-double method2(int number, double value);
-double method3(int number, double value);
-
 typedef double (*FunctionPointer)(int, double);
 
 void time_tracking(FunctionPointer methodx, int n, double x, int reps) {
