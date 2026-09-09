@@ -23,13 +23,6 @@ int median3(int arr[], int left, int right) {
 }
 
 int partition_single(int arr[], int low, int high) {
-    if (high - low < 2) { // For "small arrays", just use the first and last
-                          // elements as pivots
-        if (arr[low] > arr[high])
-            swap(&arr[low], &arr[high]);
-        return low;
-    }
-
     int m = median3(arr, low, high);
     int pivot = arr[m];
     swap(&arr[m], &arr[high - 1]);
@@ -93,10 +86,12 @@ int partition_dual(int *arr, int low, int high, int *lp) {
 }
 
 void quick_sort_single(int arr[], int low, int high) {
-    if (low < high) {
+    if (high - low > 2) {
         int pi = partition_single(arr, low, high);
         quick_sort_single(arr, low, pi - 1);
         quick_sort_single(arr, pi + 1, high);
+    } else {
+        median3(arr, low, high);
     }
 }
 
