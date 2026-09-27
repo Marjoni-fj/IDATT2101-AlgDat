@@ -28,3 +28,52 @@ TreeNode *insertNode(TreeNode *root, char *ord) {
     }
     return root;
 }
+
+void freeTree(TreeNode *root) {
+    if (root == NULL) {
+        return;
+    }
+    freeTree(root->left);
+    freeTree(root->right);
+    free(root->word);
+    free(root);
+}
+
+void printNodesAtLevel(TreeNode *root, int level, int bredde) {
+    if (root == NULL) {
+        printf("%*s", bredde, "");
+        return;
+    }
+    if (level == 0) {
+        int totalMellomrom = bredde - strlen(root->word);
+        int left = totalMellomrom / 2;
+        int right = totalMellomrom - left;
+        printf("%-*s", left, "");
+        printf("%s", root->word);
+        printf("%-*s", right, "");
+    } else {
+        printNodesAtLevel(root->left, level - 1, bredde / 2);
+        printNodesAtLevel(root->right, level - 1, bredde / 2);
+    }
+}
+
+void printTree(TreeNode *root) {
+    printNodesAtLevel(root, 0, 64);
+    printf("\n");
+    printNodesAtLevel(root, 1, 64);
+    printf("\n");
+    printNodesAtLevel(root, 2, 64);
+    printf("\n");
+    printNodesAtLevel(root, 3, 64);
+    printf("\n");
+}
+
+int main(int argc, char *argv[]) {
+    TreeNode *root = NULL;
+    for (int i = 1; i < argc; i++) {
+        root = insertNode(root, argv[i]);
+    }
+    printTree(root);
+    freeTree(root);
+    return 0;
+}
