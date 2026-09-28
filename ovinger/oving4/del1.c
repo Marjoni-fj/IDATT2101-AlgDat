@@ -22,56 +22,56 @@ typedef struct {
     int negative;
 } LongNumber;
 
-void appendDigit(LongNumber *tall, int siffer) {
+void appendDigit(LongNumber *number, int digit) {
     Node *newNode = (Node *)malloc(sizeof(Node));
-    newNode->value = siffer;
+    newNode->value = digit;
     newNode->next = NULL;
 
-    int wasEmpty = (tall->head == NULL);
+    int wasEmpty = (number->head == NULL);
 
     if (wasEmpty) {
         newNode->prev = NULL;
-        tall->head = newNode;
+        number->head = newNode;
     } else {
-        newNode->prev = tall->tail;
-        tall->tail->next = newNode;
+        newNode->prev = number->tail;
+        number->tail->next = newNode;
     }
-    tall->tail = newNode;
+    number->tail = newNode;
 }
-void prependDigit(LongNumber *tall, int siffer) {
+void prependDigit(LongNumber *number, int digit) {
     Node *newNode = (Node *)malloc(sizeof(Node));
-    newNode->value = siffer;
+    newNode->value = digit;
     newNode->prev = NULL;
 
-    int wasEmpty = (tall->head == NULL);
+    int wasEmpty = (number->head == NULL);
     if (wasEmpty) {
         newNode->next = NULL;
-        tall->tail = newNode;
+        number->tail = newNode;
     } else {
-        newNode->next = tall->head;
-        tall->head->prev = newNode;
+        newNode->next = number->head;
+        number->head->prev = newNode;
     }
-    tall->head = newNode;
+    number->head = newNode;
 }
 
 LongNumber buildFromString(char *s) {
-    LongNumber tall;
-    tall.head = NULL;
-    tall.tail = NULL;
-    tall.negative = 0;
+    LongNumber number;
+    number.head = NULL;
+    number.tail = NULL;
+    number.negative = 0;
 
     for (int i = 0; s[i] != '\0'; i++) {
         int digit = s[i] - '0';
-        appendDigit(&tall, digit);
+        appendDigit(&number, digit);
     }
-    return tall;
+    return number;
 }
 
-void printNumber(LongNumber tall) {
-    if (tall.negative) {
+void printNumber(LongNumber number) {
+    if (number.negative) {
         printf("-");
     }
-    Node *curr = tall.head;
+    Node *curr = number.head;
     while (curr != NULL) {
         printf("%d", curr->value);
         curr = curr->next;
@@ -79,9 +79,9 @@ void printNumber(LongNumber tall) {
     printf("\n");
 }
 
-int length(LongNumber tall) {
+int length(LongNumber number) {
     int len = 0;
-    Node *curr = tall.head;
+    Node *curr = number.head;
     while (curr != NULL) {
         len++;
         curr = curr->next;
@@ -89,12 +89,12 @@ int length(LongNumber tall) {
     return len;
 }
 
-int compare(LongNumber tall1, LongNumber tall2) {
-    Node *p1 = tall1.head;
-    Node *p2 = tall2.head;
+int compare(LongNumber number1, LongNumber number2) {
+    Node *p1 = number1.head;
+    Node *p2 = number2.head;
 
-    int len1 = length(tall1);
-    int len2 = length(tall2);
+    int len1 = length(number1);
+    int len2 = length(number2);
 
     if (len1 < len2)
         return -1;
@@ -113,23 +113,23 @@ int compare(LongNumber tall1, LongNumber tall2) {
     }
 }
 
-void fjernLedendeNuller(LongNumber *tall) {
-    while (tall->head->next != NULL && tall->head->value == 0) {
-        Node *temp = tall->head;
-        tall->head = tall->head->next;
-        tall->head->prev = NULL;
+void fjernLedendeNuller(LongNumber *number) {
+    while (number->head->next != NULL && number->head->value == 0) {
+        Node *temp = number->head;
+        number->head = number->head->next;
+        number->head->prev = NULL;
         free(temp);
     }
 }
 
-LongNumber pluss(LongNumber tall1, LongNumber tall2) {
+LongNumber pluss(LongNumber number1, LongNumber number2) {
     LongNumber resultat;
     resultat.head = NULL;
     resultat.tail = NULL;
     resultat.negative = 0;
 
-    Node *p1 = tall1.tail;
-    Node *p2 = tall2.tail;
+    Node *p1 = number1.tail;
+    Node *p2 = number2.tail;
     int carry = 0;
 
     while (p1 != NULL || p2 != NULL) {
@@ -153,23 +153,23 @@ LongNumber pluss(LongNumber tall1, LongNumber tall2) {
     return resultat;
 }
 
-LongNumber minus(LongNumber tall1, LongNumber tall2) {
-    LongNumber resultat;
-    resultat.head = NULL;
-    resultat.tail = NULL;
-    resultat.negative = 0;
-    int cmp = compare(tall1, tall2);
+LongNumber minus(LongNumber number1, LongNumber number2) {
+    LongNumber result;
+    result.head = NULL;
+    result.tail = NULL;
+    result.negative = 0;
+    int cmp = compare(number1, number2);
     Node *p1;
     Node *p2;
     int carry = 0;
 
     if (cmp >= 0) {
-        p1 = tall1.tail;
-        p2 = tall2.tail;
+        p1 = number1.tail;
+        p2 = number2.tail;
     } else {
-        resultat.negative = 1;
-        p1 = tall2.tail;
-        p2 = tall1.tail;
+        result.negative = 1;
+        p1 = number2.tail;
+        p2 = number1.tail;
     }
 
     while (p1 != NULL || p2 != NULL) {
@@ -182,35 +182,35 @@ LongNumber minus(LongNumber tall1, LongNumber tall2) {
         } else {
             carry = 0;
         }
-        prependDigit(&resultat, diff);
+        prependDigit(&result, diff);
         if (p1 != NULL)
             p1 = p1->prev;
         if (p2 != NULL)
             p2 = p2->prev;
     }
-    return resultat;
+    return result;
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
-        printf("Bruk: %s <tall1> <+|-> <tall2>\n", argv[0]);
+        printf("Use: %s <number1> <+|-> <number2>\n", argv[0]);
         return 1;
     }
 
-    LongNumber tall1 = buildFromString(argv[1]);
-    LongNumber tall2 = buildFromString(argv[3]);
-    LongNumber resultat;
+    LongNumber number1 = buildFromString(argv[1]);
+    LongNumber number2 = buildFromString(argv[3]);
+    LongNumber result;
 
     if (strcmp(argv[2], "+") == 0) {
-        resultat = pluss(tall1, tall2);
+        result = pluss(number1, number2);
     } else if (strcmp(argv[2], "-") == 0) {
-        resultat = minus(tall1, tall2);
+        result = minus(number1, number2);
     } else {
-        printf("Ugyldig operator\n");
+        printf("Illegal operator\n");
         return 1;
     }
 
-    fjernLedendeNuller(&resultat);
-    printNumber(resultat);
+    fjernLedendeNuller(&result);
+    printNumber(result);
     return 0;
 }
