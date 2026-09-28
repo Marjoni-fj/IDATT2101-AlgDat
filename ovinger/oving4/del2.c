@@ -9,22 +9,22 @@ typedef struct TreeNodeStruct {
     struct TreeNodeStruct *right;
 } TreeNode;
 
-TreeNode *createNewNode(char *ord) {
+TreeNode *createNewNode(char *word) {
     TreeNode *node = malloc(sizeof(TreeNode));
-    node->word = strdup(ord);
+    node->word = strdup(word);
     node->left = NULL;
     node->right = NULL;
     return node;
 }
-TreeNode *insertNode(TreeNode *root, char *ord) {
+TreeNode *insertNode(TreeNode *root, char *word) {
     if (root == NULL) {
-        return createNewNode(ord);
+        return createNewNode(word);
     }
-    int cmp = strcmp(ord, root->word);
+    int cmp = strcmp(word, root->word);
     if (cmp < 0) {
-        root->left = insertNode(root->left, ord);
+        root->left = insertNode(root->left, word);
     } else if (cmp > 0) {
-        root->right = insertNode(root->right, ord);
+        root->right = insertNode(root->right, word);
     }
     return root;
 }
@@ -39,21 +39,21 @@ void freeTree(TreeNode *root) {
     free(root);
 }
 
-void printNodesAtLevel(TreeNode *root, int level, int bredde) {
+void printNodesAtLevel(TreeNode *root, int level, int width) {
     if (root == NULL) {
-        printf("%*s", bredde, "");
+        printf("%*s", width, "");
         return;
     }
     if (level == 0) {
-        int totalMellomrom = bredde - strlen(root->word);
-        int left = totalMellomrom / 2;
-        int right = totalMellomrom - left;
+        int totalSpacing = width - strlen(root->word);
+        int left = totalSpacing / 2;
+        int right = totalSpacing - left;
         printf("%-*s", left, "");
         printf("%s", root->word);
         printf("%-*s", right, "");
     } else {
-        printNodesAtLevel(root->left, level - 1, bredde / 2);
-        printNodesAtLevel(root->right, level - 1, bredde / 2);
+        printNodesAtLevel(root->left, level - 1, width / 2);
+        printNodesAtLevel(root->right, level - 1, width / 2);
     }
 }
 
