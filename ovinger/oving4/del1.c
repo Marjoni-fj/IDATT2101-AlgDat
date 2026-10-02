@@ -146,7 +146,6 @@ LongNumber pluss(LongNumber number1, LongNumber number2) {
             p2 = p2->prev;
     }
 
-    // hva om det er mente igjen etter løkka er ferdig? (f.eks. 999+1)
     if (carry > 0) {
         prependDigit(&resultat, carry);
     }
