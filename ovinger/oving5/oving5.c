@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+// Number of vertices
 typedef struct EdgeStruct {
     int target;
     int flow;
@@ -11,8 +11,13 @@ typedef struct EdgeStruct {
 } Edge;
 
 #define MAX_VERTICES 1000
-Edge *first[MAX_VERTICES];
+Edge *first[MAX_VERTICES]; // Array of pointers to the first edge of each vertex
 int V;
+typedef struct {
+    int data[MAX_VERTICES];
+    int front;
+    int rear;
+} Queue;
 
 void addEdge(int from, int to, int capacity) {
     Edge *forward = (Edge *)malloc(sizeof(Edge));
@@ -52,6 +57,86 @@ void readGraph(const char *filename) {
         addEdge(from, to, capacity);
     }
     fclose(file);
+}
+
+int bfs(int startnode, int endnode, int parent[]) {
+    int visited[MAX_VERTICES] = {0};
+    visited[startnode] = 1; // Mark the start node as visited
+    Queue queue;
+    queue.front = 0;
+    queue.rear = 0;
+
+    queue.data[queue.rear++] = startnode;
+
+    while (queue.front < queue.rear) {
+        int currentNode = queue.data[queue.front++];
+        if (currentNode == endnode) {
+            return 1;
+        }
+        for (Edge *e = first[currentNode]; e != NULL; e = e->next) {
+            if (!visited[e->target] && e->capacity - e->flow > 0) {
+                parent[e->target] = currentNode;
+                visited[e->target] = 1;
+                queue.data[queue.rear++] = e->target;
+            }
+        }
+    }
+
+    return 0; // Placeholder return value
+}
+
+int EdmundKarpAlgorithm(int source, int sink) {
+    /* Step 1: Initialize the total flow to zero */
+    int maxflow = 0;
+    int parent[MAX_VERTICES];
+
+    /* Step 2: Find an augmenting path using BFS */
+    while (bfs(source, sink, parent)) {
+
+        /* Step 3: Find the bottleneck capacity of the path */
+        int bottleneck = 1000000;
+        int currentNode = sink;
+
+        /* Trace the path backwards from sink to source */
+        while (currentNode != source) {
+            int previousNode = parent[currentNode];
+
+            /* Find the edge from previousNode to currentNode */
+            for (Edge *e = first[previousNode]; e != NULL; e = e->next) {
+                if (e->target == currentNode) {
+
+                    /* Keep the smallest residual capacity on the path */
+                    bottleneck = (e->capacity - e->flow < bottleneck)
+                                     ? (e->capacity - e->flow)
+                                     : bottleneck;
+                }
+            }
+
+            currentNode = previousNode;
+        }
+
+        /* Step 4: Augment the flow along the path */
+        currentNode = sink;
+
+        /* Trace the same path backwards again */
+        while (currentNode != source) {
+            int previousNode = parent[currentNode];
+
+            /* Find the edge used by the augmenting path */
+            for (Edge *e = first[previousNode]; e != NULL; e = e->next) {
+                if (e->target == currentNode) {
+                    /* Send the bottleneck amount of flow through the edge */
+                    e->flow += bottleneck;
+                    /* Update the corresponding reverse edge */
+                    e->reverse->flow -= bottleneck;
+                }
+            }
+            currentNode = previousNode;
+        }
+        /* Add the new flow to the total maximum flow */
+        maxflow += bottleneck;
+    }
+    return maxflow;
 }
 
 int main(void) {
