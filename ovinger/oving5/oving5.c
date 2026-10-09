@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,14 +60,27 @@ void readGraph(const char *filename) {
     fclose(file);
 }
 
-int bfs(int startnode, int endnode, int parent[]) {
+void freeGraph() {
+    for (int i = 0; i < V; i++) {
+        Edge *current = first[i];
+        while (current != NULL) {
+            Edge *temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+}
+
+int bfs(int startnode, int endnode, Edge *pred[]) {
     int visited[MAX_VERTICES] = {0};
-    visited[startnode] = 1; // Mark the start node as visited
     Queue queue;
     queue.front = 0;
     queue.rear = 0;
-
-    queue.data[queue.rear++] = startnode;
+    for (int i = 0; i < V; i++) {
+        pred[i] = NULL;
+    }
+    visited[startnode] = 1;               // Mark the start node as visited
+    queue.data[queue.rear++] = startnode; // Enqueue the start node
 
     while (queue.front < queue.rear) {
         int currentNode = queue.data[queue.front++];
@@ -75,44 +89,37 @@ int bfs(int startnode, int endnode, int parent[]) {
         }
         for (Edge *e = first[currentNode]; e != NULL; e = e->next) {
             if (!visited[e->target] && e->capacity - e->flow > 0) {
-                parent[e->target] = currentNode;
+                pred[e->target] = e;
                 visited[e->target] = 1;
-                queue.data[queue.rear++] = e->target;
+                queue.data[queue.rear++] = e->target; // Enqueue the target node
             }
         }
     }
 
-    return 0; // Placeholder return value
+    return 0;
 }
 
 int EdmundKarpAlgorithm(int source, int sink) {
     /* Step 1: Initialize the total flow to zero */
     int maxflow = 0;
-    int parent[MAX_VERTICES];
+    Edge *pred[MAX_VERTICES];
 
     /* Step 2: Find an augmenting path using BFS */
-    while (bfs(source, sink, parent)) {
+    while (bfs(source, sink, pred)) {
 
         /* Step 3: Find the bottleneck capacity of the path */
-        int bottleneck = 1000000;
+        int bottleneck = INT_MAX;
         int currentNode = sink;
 
         /* Trace the path backwards from sink to source */
         while (currentNode != source) {
-            int previousNode = parent[currentNode];
-
-            /* Find the edge from previousNode to currentNode */
-            for (Edge *e = first[previousNode]; e != NULL; e = e->next) {
-                if (e->target == currentNode) {
-
-                    /* Keep the smallest residual capacity on the path */
-                    bottleneck = (e->capacity - e->flow < bottleneck)
-                                     ? (e->capacity - e->flow)
-                                     : bottleneck;
-                }
+            Edge *e = pred[currentNode];
+            int residualCapacity = e->capacity - e->flow;
+            if (residualCapacity < bottleneck) {
+                bottleneck = residualCapacity;
             }
-
-            currentNode = previousNode;
+            currentNode =
+                e->reverse->target; // Move to the previous node in the path
         }
 
         /* Step 4: Augment the flow along the path */
@@ -120,18 +127,10 @@ int EdmundKarpAlgorithm(int source, int sink) {
 
         /* Trace the same path backwards again */
         while (currentNode != source) {
-            int previousNode = parent[currentNode];
-
-            /* Find the edge used by the augmenting path */
-            for (Edge *e = first[previousNode]; e != NULL; e = e->next) {
-                if (e->target == currentNode) {
-                    /* Send the bottleneck amount of flow through the edge */
-                    e->flow += bottleneck;
-                    /* Update the corresponding reverse edge */
-                    e->reverse->flow -= bottleneck;
-                }
-            }
-            currentNode = previousNode;
+            Edge *e = pred[currentNode];
+            e->flow += bottleneck;
+            e->reverse->flow -= bottleneck;
+            currentNode = e->reverse->target;
         }
         /* Add the new flow to the total maximum flow */
         maxflow += bottleneck;
@@ -141,12 +140,29 @@ int EdmundKarpAlgorithm(int source, int sink) {
 
 int main(void) {
     readGraph("flytgraf1.txt");
-    for (int u = 0; u < V; u++) {
-        printf("node %d:", u);
-        for (Edge *e = first[u]; e != NULL; e = e->next) {
-            printf(" -> %d (kap %d)", e->target, e->capacity);
-        }
-        printf("\n");
-    }
+    printf("Maksimal flyt for flytgraf1.txt ble %d\n",
+           EdmundKarpAlgorithm(0, 7));
+    freeGraph();
+
+    readGraph("flytgraf2.txt");
+    printf("Maksimal flyt for flytgraf2.txt ble %d\n",
+           EdmundKarpAlgorithm(0, 1));
+    freeGraph();
+
+    readGraph("flytgraf3.txt");
+    printf("Maksimal flyt for flytgraf3.txt ble %d\n",
+           EdmundKarpAlgorithm(0, 1));
+    freeGraph();
+
+    readGraph("flytgraf4.txt");
+    printf("Maksimal flyt for flytgraf4.txt ble %d\n",
+           EdmundKarpAlgorithm(0, 7));
+    freeGraph();
+
+    readGraph("flytgraf5.txt");
+    printf("Maksimal flyt for flytgraf5.txt ble %d\n",
+           EdmundKarpAlgorithm(0, 7));
+    freeGraph();
+
     return 0;
 }
