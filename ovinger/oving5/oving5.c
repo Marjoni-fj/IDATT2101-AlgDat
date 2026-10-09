@@ -99,6 +99,24 @@ int bfs(int startnode, int endnode, Edge *pred[]) {
     return 0;
 }
 
+void printPath(Edge *pred[], int source, int sink, int bottleneck) {
+    int path[MAX_VERTICES];
+    int len = 0;
+
+    int node = sink;
+    path[len++] = node;
+    while (node != source) {
+        node = pred[node]->reverse->target;
+        path[len++] = node;
+    }
+
+    printf("%6d  ", bottleneck);
+    for (int i = len - 1; i >= 0; i--) {
+        printf("%d ", path[i]);
+    }
+    printf("\n");
+}
+
 int EdmundKarpAlgorithm(int source, int sink) {
     /* Step 1: Initialize the total flow to zero */
     int maxflow = 0;
@@ -122,6 +140,7 @@ int EdmundKarpAlgorithm(int source, int sink) {
                 e->reverse->target; // Move to the previous node in the path
         }
 
+        printPath(pred, source, sink, bottleneck);
         /* Step 4: Augment the flow along the path */
         currentNode = sink;
 
@@ -140,27 +159,27 @@ int EdmundKarpAlgorithm(int source, int sink) {
 
 int main(void) {
     readGraph("flytgraf1.txt");
-    printf("Maksimal flyt for flytgraf1.txt ble %d\n",
+    printf("Maksimal flyt for flytgraf1.txt ble %d\n\n",
            EdmundKarpAlgorithm(0, 7));
     freeGraph();
 
     readGraph("flytgraf2.txt");
-    printf("Maksimal flyt for flytgraf2.txt ble %d\n",
+    printf("Maksimal flyt for flytgraf2.txt ble %d\n\n",
            EdmundKarpAlgorithm(0, 1));
     freeGraph();
 
     readGraph("flytgraf3.txt");
-    printf("Maksimal flyt for flytgraf3.txt ble %d\n",
+    printf("Maksimal flyt for flytgraf3.txt ble %d\n\n",
            EdmundKarpAlgorithm(0, 1));
     freeGraph();
 
     readGraph("flytgraf4.txt");
-    printf("Maksimal flyt for flytgraf4.txt ble %d\n",
+    printf("Maksimal flyt for flytgraf4.txt ble %d\n\n",
            EdmundKarpAlgorithm(0, 7));
     freeGraph();
 
     readGraph("flytgraf5.txt");
-    printf("Maksimal flyt for flytgraf5.txt ble %d\n",
+    printf("Maksimal flyt for flytgraf5.txt ble %d\n\n",
            EdmundKarpAlgorithm(0, 7));
     freeGraph();
 
