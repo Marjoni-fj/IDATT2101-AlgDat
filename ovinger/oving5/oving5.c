@@ -39,6 +39,26 @@ void addEdge(int from, int to, int capacity) {
     first[to] = backward;
 }
 
+/*
+ * Leser en graf fra en tekstfil og bygger nabolistene i first[].
+ *
+ * Antar at filen har dette formatet:
+ *   linje 1:      <antall noder V> <antall kanter E>
+ *   linje 2..E+1: <franode> <tilnode> <kapasitet>
+ *
+ * Antakelser:
+ *   - Nodene er nummerert 0 til V-1.
+ *   - V er høyst MAX_VERTICES.
+ *   - Filen er riktig formatert. Returverdiene fra fscanf sjekkes ikke.
+ *
+ * Hver linje i filen gir to kanter: den ekte (med kapasiteten fra filen)
+ * og en motsatt kant med kapasitet 0, koblet sammen med reverse.
+ *
+ * Setter de globale variablene V og first[]. Kalleren må kalle freeGraph()
+ * før neste readGraph, ellers lekkes minne.
+ *
+ * Avslutter programmet hvis filen ikke kan åpnes.
+ */
 void readGraph(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
@@ -149,31 +169,21 @@ int EdmundKarpAlgorithm(int source, int sink) {
     return maxflow;
 }
 
+void runGraph(const char *filename, int source, int sink) {
+    readGraph(filename);
+    printf("Maksimum flyt fra %d til %d med Edmond-Karp\n", source, sink);
+    printf("Økning : Flytøkende vei\n");
+    int maxFlow = EdmundKarpAlgorithm(source, sink);
+    printf("Maksimal flyt for %s ble %d\n\n", filename, maxFlow);
+    freeGraph();
+}
+
 int main(void) {
-    readGraph("flytgraf1.txt");
-    printf("Maksimal flyt for flytgraf1.txt ble %d\n\n",
-           EdmundKarpAlgorithm(0, 7));
-    freeGraph();
-
-    readGraph("flytgraf2.txt");
-    printf("Maksimal flyt for flytgraf2.txt ble %d\n\n",
-           EdmundKarpAlgorithm(0, 1));
-    freeGraph();
-
-    readGraph("flytgraf3.txt");
-    printf("Maksimal flyt for flytgraf3.txt ble %d\n\n",
-           EdmundKarpAlgorithm(0, 1));
-    freeGraph();
-
-    readGraph("flytgraf4.txt");
-    printf("Maksimal flyt for flytgraf4.txt ble %d\n\n",
-           EdmundKarpAlgorithm(0, 7));
-    freeGraph();
-
-    readGraph("flytgraf5.txt");
-    printf("Maksimal flyt for flytgraf5.txt ble %d\n\n",
-           EdmundKarpAlgorithm(0, 7));
-    freeGraph();
+    runGraph("flytgraf1.txt", 0, 7);
+    runGraph("flytgraf2.txt", 0, 1);
+    runGraph("flytgraf3.txt", 0, 1);
+    runGraph("flytgraf4.txt", 0, 7);
+    runGraph("flytgraf5.txt", 0, 7);
 
     return 0;
 }

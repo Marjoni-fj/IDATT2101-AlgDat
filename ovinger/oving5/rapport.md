@@ -50,29 +50,31 @@ For flytgraf1, 2 og 4 stemmer resultatene med fasiten i oppgaveteksten. For flyt
 ### flytgraf3 (kilde 0, sluk 1): maksimal flyt 42
 
 ```
-Økning  Flytøkende vei
-    10  0 8 9 1
-     5  0 2 3 9 8 14 15 1
-    10  0 2 3 9 8 14 15 1
-     5  0 2 3 4 5 8 9 12 13 14 15 1
-     6  0 2 3 4 5 8 9 12 13 14 15 1
-     5  0 2 3 4 5 6 7 9 8 10 11 12 13 14 15 1
-     1  0 2 3 4 5 6 7 9 8 10 11 12 13 14 15 1
-Maksimal flyt: 42
+Maksimum flyt fra 0 til 1 med Edmond-Karp
+Økning : Flytøkende vei
+    10  0 8 9 1 
+     5  0 2 3 9 8 14 15 1 
+    10  0 2 3 9 8 14 15 1 
+     5  0 2 3 4 5 8 9 12 13 14 15 1 
+     6  0 2 3 4 5 8 9 12 13 14 15 1 
+     5  0 2 3 4 5 6 7 9 8 10 11 12 13 14 15 1 
+     1  0 2 3 4 5 6 7 9 8 10 11 12 13 14 15 1 
+Maksimal flyt for flytgraf3.txt ble 42
 ```
 
 ### flytgraf5 (kilde 0, sluk 7): maksimal flyt 90
 
 ```
-Økning  Flytøkende vei
-    20  0 5 4 7
-    10  0 5 6 7
-     5  0 2 4 7
-    10  0 2 3 7
-    20  0 5 6 1 7
-     5  0 2 4 6 1 7
-    20  0 2 4 5 6 1 7
-Maksimal flyt: 90
+Maksimum flyt fra 0 til 7 med Edmond-Karp
+Økning : Flytøkende vei
+    20  0 5 4 7 
+    10  0 5 6 7 
+     5  0 2 4 7 
+    10  0 2 3 7 
+    20  0 5 6 1 7 
+     5  0 2 4 6 1 7 
+    20  0 2 4 5 6 1 7 
+Maksimal flyt for flytgraf5.txt ble 90
 ```
 
 ## 5. Kompleksitet
