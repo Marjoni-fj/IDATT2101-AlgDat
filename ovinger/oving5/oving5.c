@@ -79,8 +79,8 @@ int bfs(int startnode, int endnode, Edge *pred[]) {
     for (int i = 0; i < V; i++) {
         pred[i] = NULL;
     }
-    visited[startnode] = 1;               // Mark the start node as visited
-    queue.data[queue.rear++] = startnode; // Enqueue the start node
+    visited[startnode] = 1;
+    queue.data[queue.rear++] = startnode;
 
     while (queue.front < queue.rear) {
         int currentNode = queue.data[queue.front++];
@@ -91,7 +91,7 @@ int bfs(int startnode, int endnode, Edge *pred[]) {
             if (!visited[e->target] && e->capacity - e->flow > 0) {
                 pred[e->target] = e;
                 visited[e->target] = 1;
-                queue.data[queue.rear++] = e->target; // Enqueue the target node
+                queue.data[queue.rear++] = e->target;
             }
         }
     }
@@ -118,40 +118,32 @@ void printPath(Edge *pred[], int source, int sink, int bottleneck) {
 }
 
 int EdmundKarpAlgorithm(int source, int sink) {
-    /* Step 1: Initialize the total flow to zero */
     int maxflow = 0;
     Edge *pred[MAX_VERTICES];
 
-    /* Step 2: Find an augmenting path using BFS */
     while (bfs(source, sink, pred)) {
 
-        /* Step 3: Find the bottleneck capacity of the path */
         int bottleneck = INT_MAX;
         int currentNode = sink;
 
-        /* Trace the path backwards from sink to source */
         while (currentNode != source) {
             Edge *e = pred[currentNode];
             int residualCapacity = e->capacity - e->flow;
             if (residualCapacity < bottleneck) {
                 bottleneck = residualCapacity;
             }
-            currentNode =
-                e->reverse->target; // Move to the previous node in the path
+            currentNode = e->reverse->target;
         }
 
         printPath(pred, source, sink, bottleneck);
-        /* Step 4: Augment the flow along the path */
         currentNode = sink;
 
-        /* Trace the same path backwards again */
         while (currentNode != source) {
             Edge *e = pred[currentNode];
             e->flow += bottleneck;
             e->reverse->flow -= bottleneck;
             currentNode = e->reverse->target;
         }
-        /* Add the new flow to the total maximum flow */
         maxflow += bottleneck;
     }
     return maxflow;
