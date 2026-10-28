@@ -36,6 +36,20 @@ unsigned char *readFile(const char *filename, size_t *size) {
     return buffer;
 }
 
+Node *take_min(Node **a, int *n) {
+    int best = 0;
+    for (int i = 1; i < *n; i++) {
+        if (a[i]->frequency < a[best]->frequency) {
+            best = i;
+        }
+    }
+    Node *result = a[best];
+
+    a[best] = a[*n - 1];
+    (*n)--;
+    return result;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Bruk: %s filnavn\n", argv[0]);
