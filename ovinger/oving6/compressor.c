@@ -74,6 +74,10 @@ int main(int argc, char *argv[]) {
         }
     }
     printf("antall noder: %d\n", n);
+    Node *a = take_min(nodes, &n);
+    Node *b = take_min(nodes, &n);
+    printf("minste: %d, nest minste: %d, n = %d\n", a->frequency, b->frequency,
+           n);
 
     for (int i = 0; i < n; i++) {
         free(nodes[i]);
