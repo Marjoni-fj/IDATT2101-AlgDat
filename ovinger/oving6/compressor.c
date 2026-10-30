@@ -135,7 +135,7 @@ Match find_best_match(const unsigned char *data, size_t position, size_t size) {
             data[candidate + match_length] == data[position + match_length]) {
             match_length++;
         }
-        if (match_length > best.length) {
+        if (match_length > (size_t)best.length) {
             best.length = match_length;
             best.distance = position - candidate;
         }
@@ -182,6 +182,28 @@ int main(int argc, char *argv[]) {
 
     size_t size;
     unsigned char *data = readFile(argv[1], &size);
+
+    LZToken *tokens = malloc(
+        size * sizeof(LZToken)); /* size ganger størrelsen på ett token */
+    if (tokens == NULL) {
+        perror("Failed to allocate memory for tokens");
+        free(data);
+        exit(EXIT_FAILURE);
+    }
+    size_t token_count = lz77_compress(data, size, tokens);
+
+    for (size_t i = 0; i < token_count; i++) {
+        if (tokens[i].type == LITERAL) {
+            printf("This is a literal: %u\n",
+                   (unsigned)tokens[i].LiteralOrMatch.literal);
+        } else if (tokens[i].type == REFERENCE) {
+            printf("This is a Reference with distance %d and length %d\n",
+                   tokens[i].LiteralOrMatch.match.distance,
+                   tokens[i].LiteralOrMatch.match.length);
+        }
+    }
+    free(tokens);
+
     int freq[256] = {0};
     for (const unsigned char *p = data; p < data + size; p++) {
         freq[*p]++;
