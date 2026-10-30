@@ -9,6 +9,19 @@ typedef struct Node {
     struct Node *right;
 } Node;
 
+typedef struct Match {
+    int distance;
+    int length;
+} Match;
+
+typedef struct LZTokens {
+    int type;
+    union {
+        unsigned char literal;
+        Match match;
+    } LiteralOrMatch;
+} LZTokens;
+
 unsigned char *readFile(const char *filename, size_t *size) {
     FILE *file = fopen(filename, "rb");
     if (!file) {
