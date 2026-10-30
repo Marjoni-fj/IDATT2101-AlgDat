@@ -174,6 +174,26 @@ void free_tree(Node *node) {
     free(node);
 }
 
+size_t lz77_decompress(const LZToken *tokens, size_t token_count,
+                       unsigned char *output) {
+    size_t output_size = 0;
+
+    for (size_t i = 0; i < token_count; i++) {
+        LZToken token = tokens[i];
+        if (token.type == LITERAL) {
+            output[output_size] = token.LiteralOrMatch.literal;
+            output_size++;
+        } else if (token.type == REFERENCE) {
+            for (int i = 0; i < token.LiteralOrMatch.match.length; i++) {
+                output[output_size] =
+                    output[output_size - token.LiteralOrMatch.match.distance];
+                output_size++;
+            }
+        }
+    }
+    return output_size;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Bruk: %s filnavn\n", argv[0]);
@@ -202,7 +222,27 @@ int main(int argc, char *argv[]) {
                    tokens[i].LiteralOrMatch.match.length);
         }
     }
+    unsigned char *reconstructed = malloc(size);
+    if (reconstructed == NULL) {
+        perror("Failed to allocate memory for reconstructed");
+        free(data);
+        exit(EXIT_FAILURE);
+    }
+    size_t reconstructed_size =
+        lz77_decompress(tokens, token_count, reconstructed);
+    printf("Original size: %zu\n", size);
+    printf("Reconstructed size: %zu\n", reconstructed_size);
+
+    if (reconstructed_size == size && memcmp(data, reconstructed, size) == 0) {
+        printf("LZ roundtrip succeeded\n");
+    } else {
+        printf("LZ roundtrip failed\n");
+    }
+
+    free(reconstructed);
     free(tokens);
+
+    return 0;
 
     int freq[256] = {0};
     for (const unsigned char *p = data; p < data + size; p++) {

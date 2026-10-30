@@ -1,5 +1,17 @@
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#define SEARCH_WINDOW 32768
+#define LOOKAHEAD_SIZE 258
+#define MIN_MATCH 3
+
+#define LITERAL 0
+#define REFERENCE 1
 
 typedef struct Node {
     int frequency;
@@ -7,6 +19,19 @@ typedef struct Node {
     struct Node *left;
     struct Node *right;
 } Node;
+
+typedef struct Match {
+    int distance;
+    int length;
+} Match;
+
+typedef struct LZToken {
+    int type;
+    union {
+        unsigned char literal;
+        Match match;
+    } LiteralOrMatch;
+} LZToken;
 
 Node *take_min(Node **a, int *n) {
     int best = 0;
@@ -65,6 +90,26 @@ void free_tree(Node *node) {
     free_tree(node->left);
     free_tree(node->right);
     free(node);
+}
+
+size_t lz77_decompress(const LZToken *tokens, size_t token_count,
+                       unsigned char *output) {
+    size_t output_size = 0;
+
+    for (size_t i = 0; i < token_count; i++) {
+        LZToken token = tokens[i];
+        if (token.type == LITERAL) {
+            output[output_size] = token.LiteralOrMatch.literal;
+            output_size++;
+        } else if (token.type == REFERENCE) {
+            for (int i = 0; i < token.LiteralOrMatch.match.length; i++) {
+                output[output_size] =
+                    output[output_size - token.LiteralOrMatch.match.distance];
+                output_size++;
+            }
+        }
+    }
+    return output_size;
 }
 
 int main(int argc, char *argv[]) {
