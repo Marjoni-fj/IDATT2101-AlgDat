@@ -1,6 +1,17 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#define SEARCH_WINDOW 32768
+#define LOOKAHEAD_SIZE 258
+#define MIN_MATCH 3
+
+#define LITERAL 0
+#define REFERENCE 1
 
 typedef struct Node {
     int frequency;
@@ -14,13 +25,13 @@ typedef struct Match {
     int length;
 } Match;
 
-typedef struct LZTokens {
+typedef struct LZToken {
     int type;
     union {
         unsigned char literal;
         Match match;
     } LiteralOrMatch;
-} LZTokens;
+} LZToken;
 
 unsigned char *readFile(const char *filename, size_t *size) {
     FILE *file = fopen(filename, "rb");
@@ -111,6 +122,47 @@ void write_bit(FILE *file, int bit, unsigned char *buffer, int *bit_count) {
         *buffer = 0;
         *bit_count = 0;
     }
+}
+
+Match find_best_match(const unsigned char *data, size_t position, size_t size) {
+    Match best = {0, 0};
+    size_t search_start =
+        (position > SEARCH_WINDOW) ? position - SEARCH_WINDOW : 0;
+    for (size_t candidate = search_start; candidate < position; candidate++) {
+        size_t match_length = 0;
+        while (
+            position + match_length < size && match_length < LOOKAHEAD_SIZE &&
+            data[candidate + match_length] == data[position + match_length]) {
+            match_length++;
+        }
+        if (match_length > best.length) {
+            best.length = match_length;
+            best.distance = position - candidate;
+        }
+    }
+    return best;
+}
+
+size_t lz77_compress(const unsigned char *data, size_t size, LZToken *tokens) {
+    size_t position = 0;
+    size_t token_count = 0;
+
+    while (position < size) {
+        Match match = find_best_match(data, position, size);
+
+        if (match.length >= MIN_MATCH) {
+            tokens[token_count].type = REFERENCE;
+            tokens[token_count].LiteralOrMatch.match = match;
+            token_count++;
+            position += (size_t)match.length;
+        } else {
+            tokens[token_count].type = LITERAL;
+            tokens[token_count].LiteralOrMatch.literal = data[position];
+            token_count++;
+            position++;
+        }
+    }
+    return token_count;
 }
 
 void free_tree(Node *node) {
