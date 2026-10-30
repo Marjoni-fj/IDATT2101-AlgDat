@@ -194,6 +194,52 @@ size_t lz77_decompress(const LZToken *tokens, size_t token_count,
     return output_size;
 }
 
+unsigned char *serialize_tokens(const LZToken *tokens, size_t token_count,
+                                size_t *serialized_size) {
+    size_t position = 0;
+    unsigned char *result;
+    for (size_t i = 0; i < token_count; i++) {
+        LZToken token = tokens[i];
+        if (token.type == LITERAL) {
+            position += 2;
+        } else if (token.type == REFERENCE) {
+            position += 5;
+        }
+    }
+    *serialized_size = position;
+    result = malloc(position);
+    if (result == NULL) {
+        perror("Failed allocating emory for result array");
+        exit(EXIT_FAILURE);
+    }
+
+    position = 0;
+
+    for (size_t i = 0; i < token_count; i++) {
+        LZToken token = tokens[i];
+
+        if (token.type == LITERAL) {
+            result[position] = LITERAL;
+            result[position + 1] = token.LiteralOrMatch.literal;
+            position += 2;
+        } else if (token.type == REFERENCE) {
+            result[position] = REFERENCE;
+
+            result[position + 1] = token.LiteralOrMatch.match.distance & 0xFF;
+            result[position + 2] =
+                (token.LiteralOrMatch.match.distance >> 8) & 0xFF;
+
+            result[position + 3] = token.LiteralOrMatch.match.length & 0xFF;
+            result[position + 4] =
+                (token.LiteralOrMatch.match.length >> 8) & 0xFF;
+
+            position += 5;
+        }
+    }
+
+    return result;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Bruk: %s filnavn\n", argv[0]);
@@ -211,42 +257,13 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     size_t token_count = lz77_compress(data, size, tokens);
-
-    for (size_t i = 0; i < token_count; i++) {
-        if (tokens[i].type == LITERAL) {
-            printf("This is a literal: %u\n",
-                   (unsigned)tokens[i].LiteralOrMatch.literal);
-        } else if (tokens[i].type == REFERENCE) {
-            printf("This is a Reference with distance %d and length %d\n",
-                   tokens[i].LiteralOrMatch.match.distance,
-                   tokens[i].LiteralOrMatch.match.length);
-        }
-    }
-    unsigned char *reconstructed = malloc(size);
-    if (reconstructed == NULL) {
-        perror("Failed to allocate memory for reconstructed");
-        free(data);
-        exit(EXIT_FAILURE);
-    }
-    size_t reconstructed_size =
-        lz77_decompress(tokens, token_count, reconstructed);
-    printf("Original size: %zu\n", size);
-    printf("Reconstructed size: %zu\n", reconstructed_size);
-
-    if (reconstructed_size == size && memcmp(data, reconstructed, size) == 0) {
-        printf("LZ roundtrip succeeded\n");
-    } else {
-        printf("LZ roundtrip failed\n");
-    }
-
-    free(reconstructed);
-    free(tokens);
-
-    return 0;
+    size_t serialized_size;
+    unsigned char *serialized =
+        serialize_tokens(tokens, token_count, &serialized_size);
 
     int freq[256] = {0};
-    for (const unsigned char *p = data; p < data + size; p++) {
-        freq[*p]++;
+    for (size_t i = 0; i < serialized_size; i++) {
+        freq[serialized[i]]++;
     }
     Node *root = build_tree(freq);
     int codes[256] = {0};
@@ -264,9 +281,9 @@ int main(int argc, char *argv[]) {
     unsigned char buffer = 0;
     int bit_count = 0;
 
-    for (const unsigned char *p = data; p < data + size; p++) {
-        int code = codes[*p];
-        int length = lengths[*p];
+    for (size_t i = 0; i < serialized_size; i++) {
+        int code = codes[serialized[i]];
+        int length = lengths[serialized[i]];
         for (int i = 0; i < length; i++) {
             int bit = (code >> (length - 1)) & 1;
             write_bit(output, bit, &buffer, &bit_count);
@@ -277,9 +294,13 @@ int main(int argc, char *argv[]) {
         buffer <<= (8 - bit_count);
         fwrite(&buffer, 1, 1, output);
     }
-    printf("rot: %d, filstorrelse: %zu\n", root->frequency, size);
+    printf("Original størrelse: %zu bytes\n", size);
+    printf("Serialisert størrelse: %zu bytes\n", serialized_size);
+    printf("Huffman-treets frekvenssum: %d\n", root->frequency);
     fclose(output);
     free_tree(root);
+    free(serialized);
+    free(tokens);
     free(data);
     return 0;
 }
