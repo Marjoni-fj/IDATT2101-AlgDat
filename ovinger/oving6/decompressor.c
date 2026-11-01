@@ -64,7 +64,7 @@ Node *build_tree(const int *freq) {
         Node *b = take_min(nodes, &n);
         Node *parent = malloc(sizeof(Node));
         parent->frequency = a->frequency + b->frequency;
-        parent->ch = 0; // ikke relevant for interne noder
+        parent->ch = 0; // not relevant for internal nodes
         parent->left = a;
         parent->right = b;
         nodes[n++] = parent;
@@ -124,7 +124,7 @@ size_t lz77_decompress(const LZToken *tokens, size_t token_count,
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Bruk: %s filnavn\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return EXIT_FAILURE;
     }
     FILE *input = fopen(argv[1], "rb");
@@ -155,12 +155,6 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    printf("Original size: %zu bytes\n", original_size);
-    for (int i = 0; i < 256; i++) {
-        if (freq[i] > 0) {
-            printf("Byte %d: Frequency %d\n", i, freq[i]);
-        }
-    }
     Node *root = build_tree(freq);
     FILE *output = fopen("decompressed_output.bin", "wb");
     if (!output) {
@@ -210,7 +204,7 @@ int main(int argc, char *argv[]) {
         unsigned char type = serialized[position];
         if (type == LITERAL) {
             if (serialized_size - position < 2) {
-                fprintf(stderr, "Ugyldig literal-token\n");
+                fprintf(stderr, "Invalid literal token\n");
                 free(tokens);
                 free(serialized);
                 fclose(input);
@@ -224,7 +218,7 @@ int main(int argc, char *argv[]) {
             position += 2;
         } else if (type == REFERENCE) {
             if (serialized_size - position < 5) {
-                fprintf(stderr, "Ugyldig referanse-token\n");
+                fprintf(stderr, "Invalid reference token\n");
                 free(tokens);
                 free(serialized);
                 fclose(input);
@@ -240,7 +234,7 @@ int main(int argc, char *argv[]) {
                 serialized[position + 3] | (serialized[position + 4] << 8);
             position += 5;
         } else {
-            fprintf(stderr, "Ukjent token-type: %u\n", type);
+            fprintf(stderr, "Unknown token type: %u\n", type);
             free(tokens);
             free(serialized);
             fclose(input);
@@ -264,7 +258,7 @@ int main(int argc, char *argv[]) {
     size_t reconstructed_size =
         lz77_decompress(tokens, token_count, reconstructed, original_size);
     if (reconstructed_size == SIZE_MAX || reconstructed_size != original_size) {
-        fprintf(stderr, "Feil størrelse etter LZ-dekomprimering\n");
+        fprintf(stderr, "Incorrect size after LZ decompression\n");
         free(reconstructed);
         free(tokens);
         free(serialized);
@@ -274,9 +268,16 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    fwrite(reconstructed, 1, reconstructed_size, output);
+    if (fwrite(reconstructed, 1, reconstructed_size, output) !=
+        reconstructed_size) {
+        perror("Failed to write decompressed output");
+        return EXIT_FAILURE;
+    }
 
-    printf("Tree frequency: %d\n", root->frequency);
+    printf("Decompression successful.\n");
+    printf("Output written to decompressed_output.bin\n");
+    printf("Decompressed size: %zu bytes\n", reconstructed_size);
+
     fclose(input);
     fclose(output);
     free_tree(root);

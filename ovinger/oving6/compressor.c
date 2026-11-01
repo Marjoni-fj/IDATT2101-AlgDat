@@ -92,7 +92,7 @@ Node *build_tree(const int *freq) {
         Node *b = take_min(nodes, &n);
         Node *parent = malloc(sizeof(Node));
         parent->frequency = a->frequency + b->frequency;
-        parent->ch = 0; // ikke relevant for interne noder
+        parent->ch = 0; // not relevant for internal nodes
         parent->left = a;
         parent->right = b;
         nodes[n++] = parent;
@@ -189,7 +189,7 @@ unsigned char *serialize_tokens(const LZToken *tokens, size_t token_count,
     *serialized_size = position;
     result = malloc(position);
     if (result == NULL) {
-        perror("Failed allocating emory for result array");
+        perror("Failed to allocate memory for result array");
         exit(EXIT_FAILURE);
     }
 
@@ -222,7 +222,7 @@ unsigned char *serialize_tokens(const LZToken *tokens, size_t token_count,
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Bruk: %s filnavn\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
     unsigned char *data = readFile(argv[1], &size);
 
     LZToken *tokens = malloc(
-        size * sizeof(LZToken)); /* size ganger størrelsen på ett token */
+        size * sizeof(LZToken)); /* size times the size of one token */
     if (tokens == NULL) {
         perror("Failed to allocate memory for tokens");
         free(data);
@@ -275,9 +275,9 @@ int main(int argc, char *argv[]) {
         buffer <<= (8 - bit_count);
         fwrite(&buffer, 1, 1, output);
     }
-    printf("Original størrelse: %zu bytes\n", size);
-    printf("Serialisert størrelse: %zu bytes\n", serialized_size);
-    printf("Huffman-treets frekvenssum: %d\n", root->frequency);
+    printf("Original size: %zu bytes\n", size);
+    printf("Serialized size: %zu bytes\n", serialized_size);
+    printf("Huffman tree frequency sum: %d\n", root->frequency);
     fclose(output);
     free_tree(root);
     free(serialized);
