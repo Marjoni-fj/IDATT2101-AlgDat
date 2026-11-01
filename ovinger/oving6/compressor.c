@@ -174,26 +174,6 @@ void free_tree(Node *node) {
     free(node);
 }
 
-size_t lz77_decompress(const LZToken *tokens, size_t token_count,
-                       unsigned char *output) {
-    size_t output_size = 0;
-
-    for (size_t i = 0; i < token_count; i++) {
-        LZToken token = tokens[i];
-        if (token.type == LITERAL) {
-            output[output_size] = token.LiteralOrMatch.literal;
-            output_size++;
-        } else if (token.type == REFERENCE) {
-            for (int i = 0; i < token.LiteralOrMatch.match.length; i++) {
-                output[output_size] =
-                    output[output_size - token.LiteralOrMatch.match.distance];
-                output_size++;
-            }
-        }
-    }
-    return output_size;
-}
-
 unsigned char *serialize_tokens(const LZToken *tokens, size_t token_count,
                                 size_t *serialized_size) {
     size_t position = 0;
@@ -277,6 +257,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     fwrite(&size, sizeof(size), 1, output);
+    fwrite(&serialized_size, sizeof(serialized_size), 1, output);
     fwrite(freq, sizeof(freq[0]), 256, output);
     unsigned char buffer = 0;
     int bit_count = 0;

@@ -93,20 +93,31 @@ void free_tree(Node *node) {
 }
 
 size_t lz77_decompress(const LZToken *tokens, size_t token_count,
-                       unsigned char *output) {
+                       unsigned char *output, size_t output_capacity) {
     size_t output_size = 0;
 
     for (size_t i = 0; i < token_count; i++) {
         LZToken token = tokens[i];
         if (token.type == LITERAL) {
+            if (output_size >= output_capacity) {
+                return SIZE_MAX;
+            }
             output[output_size] = token.LiteralOrMatch.literal;
             output_size++;
         } else if (token.type == REFERENCE) {
+            int distance = token.LiteralOrMatch.match.distance;
+            int length = token.LiteralOrMatch.match.length;
+            if (distance <= 0 || (size_t)distance > output_size ||
+                length < 0 || (size_t)length > output_capacity - output_size) {
+                return SIZE_MAX;
+            }
             for (int i = 0; i < token.LiteralOrMatch.match.length; i++) {
                 output[output_size] =
-                    output[output_size - token.LiteralOrMatch.match.distance];
+                    output[output_size - distance];
                 output_size++;
             }
+        } else {
+            return SIZE_MAX;
         }
     }
     return output_size;
@@ -124,6 +135,7 @@ int main(int argc, char *argv[]) {
     }
 
     size_t original_size;
+    size_t serialized_size;
     int freq[256];
 
     if (fread(&original_size, sizeof(original_size), 1, input) != 1) {
@@ -131,6 +143,13 @@ int main(int argc, char *argv[]) {
         fclose(input);
         return EXIT_FAILURE;
     }
+
+    if (fread(&serialized_size, sizeof(serialized_size), 1, input) != 1) {
+        perror("Failed to read serialized size");
+        fclose(input);
+        return EXIT_FAILURE;
+    }
+
     if (fread(freq, sizeof(freq[0]), 256, input) != 256) {
         perror("Failed to read frequency table");
         fclose(input);
@@ -153,9 +172,16 @@ int main(int argc, char *argv[]) {
     unsigned char buffer = 0;
     int bit_count = 0;
     Node *current = root;
-    size_t written = 0;
+    unsigned char *serialized = malloc(serialized_size);
+    if (serialized == NULL) {
+        perror("Failed to allocate serialized data");
+        fclose(input);
+        free_tree(root);
+        return EXIT_FAILURE;
+    }
+    size_t decoded_size = 0;
 
-    while (written < original_size) {
+    while (decoded_size < serialized_size) {
         int bit = read_bit(input, &buffer, &bit_count);
         if (bit == 0) {
             current = current->left;
@@ -163,15 +189,100 @@ int main(int argc, char *argv[]) {
             current = current->right;
         }
         if (current->left == NULL && current->right == NULL) {
-            fwrite(&current->ch, 1, 1, output);
-            written++;
+            serialized[decoded_size] = current->ch;
+            decoded_size++;
             current = root;
         }
     }
+
+    size_t position = 0;
+    size_t token_count = 0;
+    LZToken *tokens = malloc(serialized_size * sizeof(LZToken));
+    if (tokens == NULL) {
+        perror("Failed to allocate tokens");
+        free(serialized);
+        fclose(input);
+        fclose(output);
+        free_tree(root);
+        return EXIT_FAILURE;
+    }
+
+    while (position < serialized_size) {
+        unsigned char type = serialized[position];
+        if (type == LITERAL) {
+            if (serialized_size - position < 2) {
+                fprintf(stderr, "Ugyldig literal-token\n");
+                free(tokens);
+                free(serialized);
+                fclose(input);
+                fclose(output);
+                free_tree(root);
+                return EXIT_FAILURE;
+            }
+            tokens[token_count].type = LITERAL;
+            tokens[token_count].LiteralOrMatch.literal =
+                serialized[position + 1];
+            position += 2;
+        } else if (type == REFERENCE) {
+            if (serialized_size - position < 5) {
+                fprintf(stderr, "Ugyldig referanse-token\n");
+                free(tokens);
+                free(serialized);
+                fclose(input);
+                fclose(output);
+                free_tree(root);
+                return EXIT_FAILURE;
+            }
+            tokens[token_count].type = REFERENCE;
+            tokens[token_count].LiteralOrMatch.match.distance =
+                serialized[position + 1] | (serialized[position + 2] << 8);
+
+            tokens[token_count].LiteralOrMatch.match.length =
+                serialized[position + 3] | (serialized[position + 4] << 8);
+            position += 5;
+        } else {
+            fprintf(stderr, "Ukjent token-type: %u\n", type);
+            free(tokens);
+            free(serialized);
+            fclose(input);
+            fclose(output);
+            free_tree(root);
+            return EXIT_FAILURE;
+        }
+        token_count++;
+    }
+
+    unsigned char *reconstructed = malloc(original_size);
+    if (reconstructed == NULL) {
+        perror("Failed to allocate memory to reconstructed file");
+        free(tokens);
+        free(serialized);
+        fclose(input);
+        fclose(output);
+        free_tree(root);
+        return EXIT_FAILURE;
+    }
+    size_t reconstructed_size =
+        lz77_decompress(tokens, token_count, reconstructed, original_size);
+    if (reconstructed_size == SIZE_MAX || reconstructed_size != original_size) {
+        fprintf(stderr, "Feil størrelse etter LZ-dekomprimering\n");
+        free(reconstructed);
+        free(tokens);
+        free(serialized);
+        fclose(input);
+        fclose(output);
+        free_tree(root);
+        return EXIT_FAILURE;
+    }
+
+    fwrite(reconstructed, 1, reconstructed_size, output);
 
     printf("Tree frequency: %d\n", root->frequency);
     fclose(input);
     fclose(output);
     free_tree(root);
+    free(reconstructed);
+    free(tokens);
+    free(serialized);
     return 0;
 }
