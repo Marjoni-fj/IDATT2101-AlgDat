@@ -107,13 +107,12 @@ size_t lz77_decompress(const LZToken *tokens, size_t token_count,
         } else if (token.type == REFERENCE) {
             int distance = token.LiteralOrMatch.match.distance;
             int length = token.LiteralOrMatch.match.length;
-            if (distance <= 0 || (size_t)distance > output_size ||
-                length < 0 || (size_t)length > output_capacity - output_size) {
+            if (distance <= 0 || (size_t)distance > output_size || length < 0 ||
+                (size_t)length > output_capacity - output_size) {
                 return SIZE_MAX;
             }
             for (int i = 0; i < token.LiteralOrMatch.match.length; i++) {
-                output[output_size] =
-                    output[output_size - distance];
+                output[output_size] = output[output_size - distance];
                 output_size++;
             }
         } else {
