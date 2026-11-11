@@ -13,6 +13,100 @@ typedef struct Node {
     Edge *first_edge;
 } Node;
 
+typedef struct {
+    int node_id;
+    int priority;
+} HeapElement;
+
+typedef struct {
+    HeapElement *elements;
+    int size;
+    int capacity;
+} MinHeap;
+
+MinHeap createMinHeap(int capacity) {
+    MinHeap heap;
+
+    heap.elements = calloc(capacity, sizeof(HeapElement));
+    heap.size = 0;
+    heap.capacity = capacity;
+
+    return heap;
+}
+
+void freeMinHeap(MinHeap *heap) {
+    free(heap->elements);
+    heap->elements = NULL;
+    heap->size = 0;
+    heap->capacity = 0;
+}
+
+void swapElements(HeapElement *first, HeapElement *second) {
+    HeapElement temporary = *first;
+    *first = *second;
+    *second = temporary;
+}
+
+void shiftUp(MinHeap *heap, int index) {
+    while (index > 0) {
+        int parent_index = (index - 1) / (2);
+        if (heap->elements[parent_index].priority <=
+            heap->elements[index].priority) {
+            break;
+        }
+        swapElements(&heap->elements[parent_index], &heap->elements[index]);
+        index = parent_index;
+    }
+}
+void shiftDown(MinHeap *heap, int index) {
+    while (1) {
+        int left_child = 2 * index + 1;
+        int right_child = 2 * index + 2;
+        int smallest = index;
+
+        if (left_child < heap->size && heap->elements[left_child].priority <
+                                           heap->elements[smallest].priority) {
+            smallest = left_child;
+        }
+        if (right_child < heap->size && heap->elements[right_child].priority <
+                                            heap->elements[smallest].priority) {
+            smallest = right_child;
+        }
+        if (smallest == index) {
+            break;
+        }
+        swapElements(&heap->elements[index], &heap->elements[smallest]);
+        index = smallest;
+    }
+}
+
+void pushToHeap(MinHeap *heap, int node_id, int priority) {
+    if (heap->size >= heap->capacity) {
+        fprintf(stderr, "Heap is full\n");
+        return;
+    }
+    int index = heap->size;
+    heap->elements[index].node_id = node_id;
+    heap->elements[index].priority = priority;
+    heap->size++;
+
+    shiftUp(heap, index);
+}
+
+HeapElement popOffHeap(MinHeap *heap) {
+    if (heap->size == 0) {
+        fprintf(stderr, "Heap is empty\n");
+        return (HeapElement){-1, -1};
+    }
+    HeapElement popped = heap->elements[0];
+    heap->elements[0] = heap->elements[heap->size - 1];
+    heap->size--;
+    if (heap->size > 0) {
+        shiftDown(heap, 0);
+    }
+    return popped;
+}
+
 int main(void) {
     FILE *nodes_file = fopen("noder.txt", "r");
 
