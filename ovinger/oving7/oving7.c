@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
+#define LANDMARK_COUNT 4
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,8 +127,40 @@ HeapElement popOffHeap(MinHeap *heap) {
     return popped;
 }
 
-int dijkstra(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
-             int start, int target) {
+int calculate_heuristic(int current, int target, int number_of_nodes,
+                        int *from_landmark, int *to_landmark) {
+    int heuristic = 0;
+
+    for (int landmark = 0; landmark < LANDMARK_COUNT; landmark++) {
+        int index = landmark * number_of_nodes;
+
+        int landmark_to_target = from_landmark[index + target];
+        int landmark_to_current = from_landmark[index + current];
+
+        int current_to_landmark = to_landmark[index + current];
+        int target_to_landmark = to_landmark[index + target];
+
+        if (landmark_to_target != INT_MAX && landmark_to_current != INT_MAX) {
+            int candidate_from = landmark_to_target - landmark_to_current;
+
+            if (candidate_from > heuristic) {
+                heuristic = candidate_from;
+            }
+        }
+        if (current_to_landmark != INT_MAX && target_to_landmark != INT_MAX) {
+            int candidate_to = current_to_landmark - target_to_landmark;
+
+            if (candidate_to > heuristic) {
+                heuristic = candidate_to;
+            }
+        }
+    }
+    return heuristic;
+}
+
+int shortest_path_search(Node *nodes, SearchInfo *searchInfo,
+                         int number_of_nodes, int start, int target,
+                         int *from_landmark, int *to_landmark) {
     for (int i = 0; i < number_of_nodes; i++) {
         searchInfo[i].distance = INT_MAX;
         searchInfo[i].previous = -1;
@@ -135,7 +168,12 @@ int dijkstra(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
     }
     MinHeap heap = createMinHeap(number_of_nodes);
     searchInfo[start].distance = 0;
-    pushToHeap(&heap, start, 0);
+    int start_heuristic = 0;
+    if (from_landmark != NULL && to_landmark != NULL && target != -1) {
+        start_heuristic = calculate_heuristic(start, target, number_of_nodes,
+                                              from_landmark, to_landmark);
+    }
+    pushToHeap(&heap, start, start_heuristic);
     int processed_nodes = 0;
 
     while (heap.size > 0) {
@@ -147,7 +185,7 @@ int dijkstra(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
         searchInfo[current_node].processed = 1;
         processed_nodes++;
 
-        if (current_node == target) {
+        if (target != -1 && current_node == target) {
             break;
         }
         Edge *edge = nodes[current_node].first_edge;
@@ -158,7 +196,15 @@ int dijkstra(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
             if (new_time < searchInfo[neighbour].distance) {
                 searchInfo[neighbour].distance = new_time;
                 searchInfo[neighbour].previous = current_node;
-                pushToHeap(&heap, neighbour, new_time);
+                int heuristic = 0;
+                if (from_landmark != NULL && to_landmark != NULL &&
+                    target != -1) {
+                    heuristic =
+                        calculate_heuristic(neighbour, target, number_of_nodes,
+                                            from_landmark, to_landmark);
+                }
+                int priority = new_time + heuristic;
+                pushToHeap(&heap, neighbour, priority);
             }
             edge = edge->next;
         }
@@ -203,15 +249,16 @@ void print_time(int hundredths) {
     printf("%02d:%02d:%02d\n", hours, minutes, seconds);
 }
 
-void run_Dijkstra_search(Node *nodes, SearchInfo *searchInfo,
-                         int number_of_nodes, int start, int target) {
+void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
+                int start, int target, int *from_landmark, int *to_landmark) {
     struct timespec start_time;
     struct timespec end_time;
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     int processed_nodes =
-        dijkstra(nodes, searchInfo, number_of_nodes, start, target);
+        shortest_path_search(nodes, searchInfo, number_of_nodes, start, target,
+                             from_landmark, to_landmark);
 
     clock_gettime(CLOCK_MONOTONIC, &end_time);
 
@@ -220,6 +267,10 @@ void run_Dijkstra_search(Node *nodes, SearchInfo *searchInfo,
     int route_length;
     int *route =
         findRoute(searchInfo, number_of_nodes, start, target, &route_length);
+    if (route == NULL) {
+        fprintf(stderr, "Kunne ikke lage rute\n");
+        return;
+    }
 
     printf("\nRute fra %d til %d\n", start, target);
     printf("Kjøretid: ");
@@ -252,6 +303,11 @@ int main(void) {
         fclose(nodes_file);
         return EXIT_FAILURE;
     }
+    Node *reversed_nodes = calloc(number_of_nodes, sizeof(Node));
+    if (reversed_nodes == NULL) {
+        perror("Couldn't allocate memory for reverse nodes");
+        return EXIT_FAILURE;
+    }
 
     printf("Antall noder: %d\n", number_of_nodes);
     for (int i = 0; i < number_of_nodes; i++) {
@@ -276,11 +332,6 @@ int main(void) {
         fprintf(stderr, "Kunne ikke allokere søksinformasjon\n");
         free(nodes);
         return EXIT_FAILURE;
-    }
-    for (int i = 0; i < number_of_nodes; i++) {
-        searchInfo[i].distance = INT_MAX;
-        searchInfo[i].previous = -1;
-        searchInfo[i].processed = 0;
     }
 
     /*EDGE FILE*/
@@ -308,6 +359,11 @@ int main(void) {
         free(nodes);
         return EXIT_FAILURE;
     }
+    Edge *reversed_edges = calloc(number_of_edges, sizeof(Edge));
+    if (reversed_edges == NULL) {
+        perror("Couldn't allocate memory for reverse edges");
+        return EXIT_FAILURE;
+    }
     for (int i = 0; i < number_of_edges; i++) {
         int from;
         int to;
@@ -327,15 +383,73 @@ int main(void) {
         edges[i].travel_time = travel_time;
         edges[i].next = nodes[from].first_edge;
         nodes[from].first_edge = &edges[i];
+
+        reversed_edges[i].destination = from;
+        reversed_edges[i].travel_time = travel_time;
+        reversed_edges[i].next = reversed_nodes[to].first_edge;
+        reversed_nodes[to].first_edge = &reversed_edges[i];
     }
 
-    run_Dijkstra_search(nodes, searchInfo, number_of_nodes, 2001238, 1987066);
+    /* LANDEMERKER */
+    int landmarks[LANDMARK_COUNT] = {
+        2948202, // Oslo
+        7826348, // Trondheim
+        545911,  // København
+        925129   // Helsinki
+    };
 
-    run_Dijkstra_search(nodes, searchInfo, number_of_nodes, 2001238, 2763740);
+    int *from_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
+    int *to_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
+    if (from_landmark == NULL || to_landmark == NULL) {
+        perror("Couldn't allocate memory for landmarks");
+        free(from_landmark);
+        free(to_landmark);
+        return EXIT_FAILURE;
+    }
+
+    printf("\nDijkstra-søk:\n");
+    run_search(nodes, searchInfo, number_of_nodes, 2001238, 1987066, NULL,
+               NULL);
+    run_search(nodes, searchInfo, number_of_nodes, 2001238, 2763740, NULL,
+               NULL);
+
+    for (int landmark_index = 0; landmark_index < LANDMARK_COUNT;
+         landmark_index++) {
+        int landmark = landmarks[landmark_index];
+
+        shortest_path_search(nodes, searchInfo, number_of_nodes, landmark, -1,
+                             NULL, NULL);
+        for (int node = 0; node < number_of_nodes; node++) {
+            from_landmark[landmark_index * number_of_nodes + node] =
+                searchInfo[node].distance;
+        }
+
+        shortest_path_search(reversed_nodes, searchInfo, number_of_nodes,
+                             landmark, -1, NULL, NULL);
+        for (int node = 0; node < number_of_nodes; node++) {
+            to_landmark[landmark_index * number_of_nodes + node] =
+                searchInfo[node].distance;
+        }
+    }
+
+    printf("\nALT-søk:\n");
+    run_search(nodes, searchInfo, number_of_nodes, 2001238, 1987066,
+               from_landmark, to_landmark);
+    run_search(nodes, searchInfo, number_of_nodes, 2001238, 2763740,
+               from_landmark, to_landmark);
+
+    // printf("Oslo -> Odense: %d\n", from_landmark[0 * number_of_nodes +
+    // 2763740]); printf("Gløshaugen -> Oslo: %d\n", to_landmark[0 *
+    // number_of_nodes + 2001238]);
 
     fclose(edges_file);
+    free(from_landmark);
+    free(to_landmark);
     free(edges);
+    free(reversed_edges);
     free(searchInfo);
     free(nodes);
+    free(reversed_nodes);
+
     return EXIT_SUCCESS;
 }
