@@ -1,8 +1,17 @@
 #define _POSIX_C_SOURCE 200809L
 #define LANDMARK_COUNT 4
+#define NEARBY_POINT_COUNT 4
+#define GLOSHAUGEN_NODE 2001238
+#define OTILIENBORG_NODE 1987066
+#define ODENSE_NODE 2763740
+#define OSLO_NODE 2948202
+#define TRONDHEIM_NODE 7826348
+#define KOBENHAVN_NODE 545911
+#define HELSINKI_NODE 925129
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 typedef struct Edge {
     int destination;
@@ -32,6 +41,18 @@ typedef struct {
     int previous;
     int processed;
 } SearchInfo;
+
+typedef struct {
+    int node_id;
+    int type_code;
+    char *name;
+} InterestPoint;
+
+typedef struct {
+    int node_id;
+    int distance;
+    const char *name;
+} NearbyPoint;
 
 MinHeap createMinHeap(int capacity) {
     MinHeap heap;
@@ -248,9 +269,74 @@ void print_time(int hundredths) {
 
     printf("%02d:%02d:%02d\n", hours, minutes, seconds);
 }
+void save_route_geojson(const char *filename, Node *nodes, int *route,
+                        int route_length) {
+    FILE *file = fopen(filename, "w");
 
+    if (file == NULL) {
+        perror("Kunne ikke opprette GeoJSON-fil");
+        return;
+    }
+
+    fprintf(file, "{\n"
+                  "  \"type\": \"Feature\",\n"
+                  "  \"geometry\": {\n"
+                  "    \"type\": \"LineString\",\n"
+                  "    \"coordinates\": [\n");
+
+    for (int i = route_length - 1; i >= 0; i--) {
+        int node_id = route[i];
+
+        fprintf(file, "      [%.8f, %.8f]%s\n", nodes[node_id].longitude,
+                nodes[node_id].latitude, i > 0 ? "," : "");
+    }
+
+    fprintf(file, "    ]\n"
+                  "  }\n"
+                  "}\n");
+
+    fclose(file);
+}
+
+void save_points_geojson(const char *filename, Node *nodes, NearbyPoint *points,
+                         int count) {
+    FILE *file = fopen(filename, "w");
+
+    if (file == NULL) {
+        perror("Kunne ikke opprette POI-GeoJSON");
+        return;
+    }
+
+    fprintf(file, "{\n"
+                  "  \"type\": \"FeatureCollection\",\n"
+                  "  \"features\": [\n");
+
+    for (int i = 0; i < count; i++) {
+        int node_id = points[i].node_id;
+
+        fprintf(file,
+                "    {\n"
+                "      \"type\": \"Feature\",\n"
+                "      \"properties\": {\n"
+                "        \"name\": \"%s\"\n"
+                "      },\n"
+                "      \"geometry\": {\n"
+                "        \"type\": \"Point\",\n"
+                "        \"coordinates\": [%.8f, %.8f]\n"
+                "      }\n"
+                "    }%s\n",
+                points[i].name, nodes[node_id].longitude,
+                nodes[node_id].latitude, i < count - 1 ? "," : "");
+    }
+
+    fprintf(file, "  ]\n"
+                  "}\n");
+
+    fclose(file);
+}
 void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
-                int start, int target, int *from_landmark, int *to_landmark) {
+                int start, int target, int *from_landmark, int *to_landmark,
+                const char *geojson_filename) {
     struct timespec start_time;
     struct timespec end_time;
 
@@ -279,7 +365,219 @@ void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
     printf("Prosesserte noder: %d\n", processed_nodes);
     printf("Noder i ruten: %d\n", route_length);
 
+    if (geojson_filename != NULL) {
+        save_route_geojson(geojson_filename, nodes, route, route_length);
+    }
     free(route);
+}
+
+int compare_interest_points(const void *first, const void *second) {
+    const InterestPoint *first_point = first;
+    const InterestPoint *second_point = second;
+
+    if (first_point->node_id < second_point->node_id) {
+        return -1;
+    }
+    if (first_point->node_id > second_point->node_id) {
+        return 1;
+    }
+    return 0;
+}
+
+int first_interest_point_at_node(InterestPoint *interest_points,
+                                 int number_of_interest_points, int node_id) {
+    int left = 0;
+    int right = number_of_interest_points;
+
+    while (left < right) {
+        int middle = left + (right - left) / 2;
+        if (interest_points[middle].node_id < node_id) {
+            left = middle + 1;
+        } else {
+            right = middle;
+        }
+    }
+    return left;
+}
+
+int find_nearest_interest_points(Node *nodes, SearchInfo *searchInfo,
+                                 int number_of_nodes, int start,
+                                 InterestPoint *interest_points,
+                                 int number_of_interest_points, int wanted_type,
+                                 int max_results, NearbyPoint *results) {
+    for (int i = 0; i < number_of_nodes; i++) {
+        searchInfo[i].distance = INT_MAX;
+        searchInfo[i].previous = -1;
+        searchInfo[i].processed = 0;
+    }
+    MinHeap heap = createMinHeap(number_of_nodes);
+    searchInfo[start].distance = 0;
+    int priority = 0;
+    int result_count = 0;
+    pushToHeap(&heap, start, priority);
+
+    while (heap.size > 0) {
+        HeapElement current = popOffHeap(&heap);
+        int current_node = current.node_id;
+        if (searchInfo[current_node].processed) {
+            continue;
+        }
+        searchInfo[current_node].processed = 1;
+        int first_point = first_interest_point_at_node(
+            interest_points, number_of_interest_points, current_node);
+        for (int i = first_point; i < number_of_interest_points &&
+                                  interest_points[i].node_id == current_node;
+             i++) {
+            InterestPoint *point = &interest_points[i];
+            if (point->node_id == current_node &&
+                (point->type_code & wanted_type) != 0 &&
+                result_count < max_results) {
+                results[result_count].node_id = point->node_id;
+                results[result_count].distance =
+                    searchInfo[current_node].distance;
+                results[result_count].name = point->name;
+                result_count++;
+            }
+        }
+        if (result_count == max_results) {
+            break;
+        }
+        Edge *edge = nodes[current_node].first_edge;
+        while (edge != NULL) {
+            int neighbour = edge->destination;
+            int new_time =
+                searchInfo[current_node].distance + edge->travel_time;
+            if (new_time < searchInfo[neighbour].distance) {
+                searchInfo[neighbour].distance = new_time;
+                searchInfo[neighbour].previous = current_node;
+                pushToHeap(&heap, neighbour, new_time);
+            }
+            edge = edge->next;
+        }
+    }
+    freeMinHeap(&heap);
+    return result_count;
+}
+
+int load_interest_points(const char *filename,
+                         InterestPoint **interest_points) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Kunne ikke åpne interessepkt.txt");
+        return -1;
+    }
+
+    int number_of_interest_points;
+    if (fscanf(file, "%d", &number_of_interest_points) != 1) {
+        fprintf(stderr, "Kunne ikke lese antall interessepunkter\n");
+        fclose(file);
+        return -1;
+    }
+
+    *interest_points =
+        malloc(number_of_interest_points * sizeof(InterestPoint));
+    if (*interest_points == NULL) {
+        fprintf(stderr, "Kunne ikke allokere interessepunkter\n");
+        fclose(file);
+        return -1;
+    }
+
+    int character;
+    while ((character = fgetc(file)) != '\n' && character != EOF) {
+    }
+    char line[2048];
+    for (int i = 0; i < number_of_interest_points; i++) {
+        if (fgets(line, sizeof(line), file) == NULL) {
+            fprintf(stderr, "Kunne ikke lese interessepunkt %d\n", i);
+            fclose(file);
+            return -1;
+        }
+        int node_id;
+        int type_code;
+        if (sscanf(line, "%d %d", &node_id, &type_code) != 2) {
+            fprintf(stderr, "Ugyldig interessepunkt %d\n", i);
+            fclose(file);
+            return -1;
+        }
+        char *first_quote = strchr(line, '"');
+        char *last_quote = strrchr(line, '"');
+        if (first_quote == NULL || last_quote == first_quote) {
+            fprintf(stderr, "Mangler navn på interessepunkt %d\n", i);
+            fclose(file);
+            return -1;
+        }
+
+        first_quote++;
+        size_t name_length = (size_t)(last_quote - first_quote);
+        (*interest_points)[i].node_id = node_id;
+        (*interest_points)[i].type_code = type_code;
+        (*interest_points)[i].name = malloc(name_length + 1);
+        if ((*interest_points)[i].name == NULL) {
+            fprintf(stderr, "Kunne ikke allokere navn\n");
+            fclose(file);
+            return -1;
+        }
+        memcpy((*interest_points)[i].name, first_quote, name_length);
+        (*interest_points)[i].name[name_length] = '\0';
+    }
+
+    fclose(file);
+    return number_of_interest_points;
+}
+
+int save_landmarks(const char *filename, int number_of_nodes, int *landmarks,
+                   int *from_landmark, int *to_landmark) {
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        perror("Kunne ikke opprette landmark-fil");
+        return -1;
+    }
+    size_t table_size = LANDMARK_COUNT * (size_t)number_of_nodes;
+    if (fwrite(&number_of_nodes, sizeof(int), 1, file) != 1 ||
+        fwrite(landmarks, sizeof(int), LANDMARK_COUNT, file) !=
+            LANDMARK_COUNT ||
+        fwrite(from_landmark, sizeof(int), table_size, file) != table_size ||
+        fwrite(to_landmark, sizeof(int), table_size, file) != table_size) {
+        fprintf(stderr, "Kunne ikke skrive landmark-data\n");
+        fclose(file);
+        return -1;
+    }
+    fclose(file);
+    return 0;
+}
+
+int load_landmarks(const char *filename, int number_of_nodes, int *landmarks,
+                   int *from_landmark, int *to_landmark) {
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        perror("Kunne ikke åpne landmark-fil");
+        return -1;
+    }
+    int stored_number_of_nodes;
+    if (fread(&stored_number_of_nodes, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Kunne ikke lese antall noder\n");
+        fclose(file);
+        return -1;
+    }
+    if (stored_number_of_nodes != number_of_nodes) {
+        fprintf(stderr, "Landmark-filen passer ikke til kartet\n");
+        fclose(file);
+        return -1;
+    }
+    if (fread(landmarks, sizeof(int), LANDMARK_COUNT, file) != LANDMARK_COUNT) {
+        fprintf(stderr, "Kunne ikke lese landemerker\n");
+        fclose(file);
+        return -1;
+    }
+    size_t table_size = LANDMARK_COUNT * (size_t)number_of_nodes;
+    if (fread(from_landmark, sizeof(int), table_size, file) != table_size ||
+        fread(to_landmark, sizeof(int), table_size, file) != table_size) {
+        fprintf(stderr, "Kunne ikke lese landmark-tabeller\n");
+        fclose(file);
+        return -1;
+    }
+    fclose(file);
+    return 0;
 }
 
 int main(void) {
@@ -309,7 +607,8 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    printf("Antall noder: %d\n", number_of_nodes);
+    // printf("Antall noder: %d\n", number_of_nodes);
+
     for (int i = 0; i < number_of_nodes; i++) {
         int node_id;
         double latitude;
@@ -390,13 +689,47 @@ int main(void) {
         reversed_nodes[to].first_edge = &reversed_edges[i];
     }
 
+    /* INTEREST POINTS AND NEARBY POINTS*/
+    InterestPoint *interest_points = NULL;
+    int count = load_interest_points("interessepkt.txt", &interest_points);
+    if (count == -1) {
+        return EXIT_FAILURE;
+    }
+    qsort(interest_points, count, sizeof(InterestPoint),
+          compare_interest_points);
+
+    /* GLOSHAUGEN */
+    int gloshaugen = GLOSHAUGEN_NODE;
+    int wanted_type = 8 | 16;
+
+    NearbyPoint nearby_points[NEARBY_POINT_COUNT];
+    int gloshaugen_found = find_nearest_interest_points(
+        nodes, searchInfo, number_of_nodes, gloshaugen, interest_points, count,
+        wanted_type, NEARBY_POINT_COUNT, nearby_points);
+    for (int i = 0; i < gloshaugen_found; i++) {
+        printf("Gløshaugen %d. %s, node %d, tid %d\n", i + 1,
+               nearby_points[i].name, nearby_points[i].node_id,
+               nearby_points[i].distance);
+    }
+    save_points_geojson("gloshaugen-points.geojson", nodes, nearby_points,
+                        gloshaugen_found);
+
+    /* ODENSE */
+    NearbyPoint odense_points[NEARBY_POINT_COUNT];
+
+    int odense_found = find_nearest_interest_points(
+        nodes, searchInfo, number_of_nodes, ODENSE_NODE, interest_points, count,
+        4, NEARBY_POINT_COUNT, odense_points);
+    for (int i = 0; i < odense_found; i++) {
+        printf("Odense %d. %s, node %d, tid %d\n", i + 1, odense_points[i].name,
+               odense_points[i].node_id, odense_points[i].distance);
+    }
+    save_points_geojson("odense-points.geojson", nodes, odense_points,
+                        odense_found);
+
     /* LANDEMERKER */
-    int landmarks[LANDMARK_COUNT] = {
-        2948202, // Oslo
-        7826348, // Trondheim
-        545911,  // København
-        925129   // Helsinki
-    };
+    int landmarks[LANDMARK_COUNT] = {OSLO_NODE, TRONDHEIM_NODE, KOBENHAVN_NODE,
+                                     HELSINKI_NODE};
 
     int *from_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
     int *to_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
@@ -408,40 +741,69 @@ int main(void) {
     }
 
     printf("\nDijkstra-søk:\n");
-    run_search(nodes, searchInfo, number_of_nodes, 2001238, 1987066, NULL,
-               NULL);
-    run_search(nodes, searchInfo, number_of_nodes, 2001238, 2763740, NULL,
-               NULL);
+    run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE,
+               OTILIENBORG_NODE, NULL, NULL,
+               "dijkstra-gloshaugen-otilienborg.geojson");
+    run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE, ODENSE_NODE,
+               NULL, NULL, "dijkstra-gloshaugen-odense.geojson");
 
-    for (int landmark_index = 0; landmark_index < LANDMARK_COUNT;
-         landmark_index++) {
-        int landmark = landmarks[landmark_index];
+    /* LANDMARK STORAGE*/
+    FILE *landmark_file = fopen("landmarks.bin", "rb");
+    if (landmark_file != NULL) {
+        fclose(landmark_file);
 
-        shortest_path_search(nodes, searchInfo, number_of_nodes, landmark, -1,
-                             NULL, NULL);
-        for (int node = 0; node < number_of_nodes; node++) {
-            from_landmark[landmark_index * number_of_nodes + node] =
-                searchInfo[node].distance;
+        if (load_landmarks("landmarks.bin", number_of_nodes, landmarks,
+                           from_landmark, to_landmark) != 0) {
+            fprintf(stderr, "Kunne ikke laste landmark-data\n");
+            return EXIT_FAILURE;
+        }
+        printf("Lastet landmarks.bin\n");
+    } else {
+        printf("Beregner landmark-tabeller...\n");
+
+        for (int landmark_index = 0; landmark_index < LANDMARK_COUNT;
+             landmark_index++) {
+            int landmark = landmarks[landmark_index];
+
+            shortest_path_search(nodes, searchInfo, number_of_nodes, landmark,
+                                 -1, NULL, NULL);
+            for (int node = 0; node < number_of_nodes; node++) {
+                from_landmark[landmark_index * number_of_nodes + node] =
+                    searchInfo[node].distance;
+            }
+
+            shortest_path_search(reversed_nodes, searchInfo, number_of_nodes,
+                                 landmark, -1, NULL, NULL);
+            for (int node = 0; node < number_of_nodes; node++) {
+                to_landmark[landmark_index * number_of_nodes + node] =
+                    searchInfo[node].distance;
+            }
         }
 
-        shortest_path_search(reversed_nodes, searchInfo, number_of_nodes,
-                             landmark, -1, NULL, NULL);
-        for (int node = 0; node < number_of_nodes; node++) {
-            to_landmark[landmark_index * number_of_nodes + node] =
-                searchInfo[node].distance;
+        if (save_landmarks("landmarks.bin", number_of_nodes, landmarks,
+                           from_landmark, to_landmark) != 0) {
+            fprintf(stderr, "Kunne ikke lagre landmark-data\n");
+            return EXIT_FAILURE;
         }
     }
 
     printf("\nALT-søk:\n");
-    run_search(nodes, searchInfo, number_of_nodes, 2001238, 1987066,
-               from_landmark, to_landmark);
-    run_search(nodes, searchInfo, number_of_nodes, 2001238, 2763740,
-               from_landmark, to_landmark);
+    run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE,
+               OTILIENBORG_NODE, from_landmark, to_landmark,
+               "alt-gloshaugen-otilienborg.geojson");
+
+    run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE, ODENSE_NODE,
+               from_landmark, to_landmark, "alt-gloshaugen-odense.geojson");
 
     // printf("Oslo -> Odense: %d\n", from_landmark[0 * number_of_nodes +
     // 2763740]); printf("Gløshaugen -> Oslo: %d\n", to_landmark[0 *
     // number_of_nodes + 2001238]);
 
+    for (int i = 0; i < count; i++) {
+        free(interest_points[i].name);
+    }
+
+    free(interest_points);
     fclose(edges_file);
     free(from_landmark);
     free(to_landmark);

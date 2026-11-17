@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SiT Kafe Kjelhuset"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.40404570, 63.41840510]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kantine Materialteknologi 2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.40612150, 63.41740430]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kromaten kantine"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.40777770, 63.41646130]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cafe-sito Stripa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.40494390, 63.41658470]
+      }
+    }
+  ]
+}

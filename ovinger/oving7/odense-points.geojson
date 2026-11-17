@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Clever Føtex Bolbro"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.34817210, 55.39481030]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tesla"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.43159560, 55.38144090]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tesla Supercharger Odense"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.42680330, 55.38655500]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Clever"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.43297420, 55.37790510]
+      }
+    }
+  ]
+}
