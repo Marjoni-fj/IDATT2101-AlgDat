@@ -274,7 +274,7 @@ void save_route_geojson(const char *filename, Node *nodes, int *route,
     FILE *file = fopen(filename, "w");
 
     if (file == NULL) {
-        perror("Kunne ikke opprette GeoJSON-fil");
+        perror("Couldn't create GeoJSON-fil");
         return;
     }
 
@@ -303,7 +303,7 @@ void save_points_geojson(const char *filename, Node *nodes, NearbyPoint *points,
     FILE *file = fopen(filename, "w");
 
     if (file == NULL) {
-        perror("Kunne ikke opprette POI-GeoJSON");
+        perror("Couldn't create POI-GeoJSON");
         return;
     }
 
@@ -350,6 +350,11 @@ void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
 
     double search_time = elapsed_seconds(start_time, end_time);
 
+    if (searchInfo[target].distance == INT_MAX) {
+        printf("No route from %d to %d\n", start, target);
+        return;
+    }
+
     int route_length;
     int *route =
         findRoute(searchInfo, number_of_nodes, start, target, &route_length);
@@ -358,12 +363,12 @@ void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
         return;
     }
 
-    printf("\nRute fra %d til %d\n", start, target);
-    printf("Kjøretid: ");
+    printf("\nRoute from %d to %d\n", start, target);
+    printf("Travel time: ");
     print_time(searchInfo[target].distance);
-    printf("Søketid: %.6f sekunder\n", search_time);
-    printf("Prosesserte noder: %d\n", processed_nodes);
-    printf("Noder i ruten: %d\n", route_length);
+    printf("Search time: %.6f seconds\n", search_time);
+    printf("Processed nodes: %d\n", processed_nodes);
+    printf("Nodes in route: %d\n", route_length);
 
     if (geojson_filename != NULL) {
         save_route_geojson(geojson_filename, nodes, route, route_length);
@@ -463,13 +468,13 @@ int load_interest_points(const char *filename,
                          InterestPoint **interest_points) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Kunne ikke åpne interessepkt.txt");
+        perror("Couldn't open interessepkt.txt");
         return -1;
     }
 
     int number_of_interest_points;
     if (fscanf(file, "%d", &number_of_interest_points) != 1) {
-        fprintf(stderr, "Kunne ikke lese antall interessepunkter\n");
+        fprintf(stderr, "Couldn't read all interest points\n");
         fclose(file);
         return -1;
     }
@@ -477,7 +482,7 @@ int load_interest_points(const char *filename,
     *interest_points =
         malloc(number_of_interest_points * sizeof(InterestPoint));
     if (*interest_points == NULL) {
-        fprintf(stderr, "Kunne ikke allokere interessepunkter\n");
+        fprintf(stderr, "Couldn't allocate interest points\n");
         fclose(file);
         return -1;
     }
@@ -488,21 +493,21 @@ int load_interest_points(const char *filename,
     char line[2048];
     for (int i = 0; i < number_of_interest_points; i++) {
         if (fgets(line, sizeof(line), file) == NULL) {
-            fprintf(stderr, "Kunne ikke lese interessepunkt %d\n", i);
+            fprintf(stderr, "Couldn't read interest point %d\n", i);
             fclose(file);
             return -1;
         }
         int node_id;
         int type_code;
         if (sscanf(line, "%d %d", &node_id, &type_code) != 2) {
-            fprintf(stderr, "Ugyldig interessepunkt %d\n", i);
+            fprintf(stderr, "Invalid interest point %d\n", i);
             fclose(file);
             return -1;
         }
         char *first_quote = strchr(line, '"');
         char *last_quote = strrchr(line, '"');
         if (first_quote == NULL || last_quote == first_quote) {
-            fprintf(stderr, "Mangler navn på interessepunkt %d\n", i);
+            fprintf(stderr, "Missing name on interest point %d\n", i);
             fclose(file);
             return -1;
         }
@@ -513,7 +518,7 @@ int load_interest_points(const char *filename,
         (*interest_points)[i].type_code = type_code;
         (*interest_points)[i].name = malloc(name_length + 1);
         if ((*interest_points)[i].name == NULL) {
-            fprintf(stderr, "Kunne ikke allokere navn\n");
+            fprintf(stderr, "Couldn't allocate name\n");
             fclose(file);
             return -1;
         }
@@ -529,7 +534,7 @@ int save_landmarks(const char *filename, int number_of_nodes, int *landmarks,
                    int *from_landmark, int *to_landmark) {
     FILE *file = fopen(filename, "wb");
     if (file == NULL) {
-        perror("Kunne ikke opprette landmark-fil");
+        perror("Couldn't create landmark file");
         return -1;
     }
     size_t table_size = LANDMARK_COUNT * (size_t)number_of_nodes;
@@ -538,7 +543,7 @@ int save_landmarks(const char *filename, int number_of_nodes, int *landmarks,
             LANDMARK_COUNT ||
         fwrite(from_landmark, sizeof(int), table_size, file) != table_size ||
         fwrite(to_landmark, sizeof(int), table_size, file) != table_size) {
-        fprintf(stderr, "Kunne ikke skrive landmark-data\n");
+        fprintf(stderr, "Couldn't write landmark-data\n");
         fclose(file);
         return -1;
     }
@@ -550,29 +555,29 @@ int load_landmarks(const char *filename, int number_of_nodes, int *landmarks,
                    int *from_landmark, int *to_landmark) {
     FILE *file = fopen(filename, "rb");
     if (file == NULL) {
-        perror("Kunne ikke åpne landmark-fil");
+        perror("Couldn't open landmark-fil");
         return -1;
     }
     int stored_number_of_nodes;
     if (fread(&stored_number_of_nodes, sizeof(int), 1, file) != 1) {
-        fprintf(stderr, "Kunne ikke lese antall noder\n");
+        fprintf(stderr, "Couldn't read amount of nodes\n");
         fclose(file);
         return -1;
     }
     if (stored_number_of_nodes != number_of_nodes) {
-        fprintf(stderr, "Landmark-filen passer ikke til kartet\n");
+        fprintf(stderr, "Landmark-file doesn't fit the map\n");
         fclose(file);
         return -1;
     }
     if (fread(landmarks, sizeof(int), LANDMARK_COUNT, file) != LANDMARK_COUNT) {
-        fprintf(stderr, "Kunne ikke lese landemerker\n");
+        fprintf(stderr, "Couldn't read landemarks\n");
         fclose(file);
         return -1;
     }
     size_t table_size = LANDMARK_COUNT * (size_t)number_of_nodes;
     if (fread(from_landmark, sizeof(int), table_size, file) != table_size ||
         fread(to_landmark, sizeof(int), table_size, file) != table_size) {
-        fprintf(stderr, "Kunne ikke lese landmark-tabeller\n");
+        fprintf(stderr, "Couldn't read landmark-tabel\n");
         fclose(file);
         return -1;
     }
@@ -581,33 +586,44 @@ int load_landmarks(const char *filename, int number_of_nodes, int *landmarks,
 }
 
 int main(void) {
-    /*LES IN NODER*/
-    FILE *nodes_file = fopen("noder.txt", "r");
+    int exit_code = EXIT_FAILURE;
+
+    FILE *nodes_file = NULL;
+    FILE *edges_file = NULL;
+    Node *nodes = NULL;
+    Node *reversed_nodes = NULL;
+    SearchInfo *searchInfo = NULL;
+    Edge *edges = NULL;
+    Edge *reversed_edges = NULL;
+    InterestPoint *interest_points = NULL;
+    int *from_landmark = NULL;
+    int *to_landmark = NULL;
+    int number_of_nodes = 0;
+    int number_of_edges = 0;
+    int count = 0;
+
+    /*READ IN NODES*/
+    nodes_file = fopen("noder.txt", "r");
     if (nodes_file == NULL) {
-        perror("Kunne ikke åpne noder.txt");
-        return EXIT_FAILURE;
+        perror("Couldn't open noder.txt");
+        goto cleanup;
     }
 
-    int number_of_nodes;
     if (fscanf(nodes_file, "%d", &number_of_nodes) != 1) {
-        fprintf(stderr, "Kunne ikke lese antall noder\n");
-        fclose(nodes_file);
-        return EXIT_FAILURE;
+        fprintf(stderr, "Couldn't read amount of nodes\n");
+        goto cleanup;
     }
 
-    Node *nodes = calloc(number_of_nodes, sizeof(Node));
+    nodes = calloc(number_of_nodes, sizeof(Node));
     if (nodes == NULL) {
         perror("Couldn't allocate memory for nodes");
-        fclose(nodes_file);
-        return EXIT_FAILURE;
+        goto cleanup;
     }
-    Node *reversed_nodes = calloc(number_of_nodes, sizeof(Node));
+    reversed_nodes = calloc(number_of_nodes, sizeof(Node));
     if (reversed_nodes == NULL) {
         perror("Couldn't allocate memory for reverse nodes");
-        return EXIT_FAILURE;
+        goto cleanup;
     }
-
-    // printf("Antall noder: %d\n", number_of_nodes);
 
     for (int i = 0; i < number_of_nodes; i++) {
         int node_id;
@@ -615,53 +631,42 @@ int main(void) {
         double longitude;
         if (fscanf(nodes_file, "%d %lf %lf", &node_id, &latitude, &longitude) !=
             3) {
-            fprintf(stderr, "Kunne ikke lese node %d\n", i);
-            free(nodes);
-            fclose(nodes_file);
-            return EXIT_FAILURE;
+            fprintf(stderr, "Couldn't read node %d\n", i);
+            goto cleanup;
         }
         nodes[node_id].latitude = latitude;
         nodes[node_id].longitude = longitude;
         nodes[node_id].first_edge = NULL;
     }
     fclose(nodes_file);
+    nodes_file = NULL;
 
-    SearchInfo *searchInfo = calloc(number_of_nodes, sizeof(SearchInfo));
+    searchInfo = calloc(number_of_nodes, sizeof(SearchInfo));
     if (searchInfo == NULL) {
-        fprintf(stderr, "Kunne ikke allokere søksinformasjon\n");
-        free(nodes);
-        return EXIT_FAILURE;
+        fprintf(stderr, "Couldn't allocate search information\n");
+        goto cleanup;
     }
 
-    /*EDGE FILE*/
-    FILE *edges_file = fopen("kanter.txt", "r");
+    /*READ IN EDGES*/
+    edges_file = fopen("kanter.txt", "r");
     if (edges_file == NULL) {
-        perror("Kunne ikke åpne kanter.txt");
-        free(searchInfo);
-        free(nodes);
-        return EXIT_FAILURE;
+        perror("Couldn't open kanter.txt");
+        goto cleanup;
     }
 
-    int number_of_edges;
     if (fscanf(edges_file, "%d", &number_of_edges) != 1) {
-        fprintf(stderr, "Kunne ikke lese antall kanter\n");
-        fclose(edges_file);
-        free(searchInfo);
-        free(nodes);
-        return EXIT_FAILURE;
+        fprintf(stderr, "Couldn't read amount of edges\n");
+        goto cleanup;
     }
-    Edge *edges = calloc(number_of_edges, sizeof(Edge));
+    edges = calloc(number_of_edges, sizeof(Edge));
     if (edges == NULL) {
         perror("Couldn't allocate memory for edges");
-        fclose(edges_file);
-        free(searchInfo);
-        free(nodes);
-        return EXIT_FAILURE;
+        goto cleanup;
     }
-    Edge *reversed_edges = calloc(number_of_edges, sizeof(Edge));
+    reversed_edges = calloc(number_of_edges, sizeof(Edge));
     if (reversed_edges == NULL) {
         perror("Couldn't allocate memory for reverse edges");
-        return EXIT_FAILURE;
+        goto cleanup;
     }
     for (int i = 0; i < number_of_edges; i++) {
         int from;
@@ -671,12 +676,8 @@ int main(void) {
         int speed_limit;
         if (fscanf(edges_file, "%d %d %d %d %d", &from, &to, &travel_time,
                    &length, &speed_limit) != 5) {
-            fprintf(stderr, "Kunne ikke lese kant %d\n", i);
-            free(edges);
-            free(nodes);
-            free(searchInfo);
-            fclose(edges_file);
-            return EXIT_FAILURE;
+            fprintf(stderr, "Couldn't read edge %d\n", i);
+            goto cleanup;
         }
         edges[i].destination = to;
         edges[i].travel_time = travel_time;
@@ -690,10 +691,9 @@ int main(void) {
     }
 
     /* INTEREST POINTS AND NEARBY POINTS*/
-    InterestPoint *interest_points = NULL;
-    int count = load_interest_points("interessepkt.txt", &interest_points);
+    count = load_interest_points("interessepkt.txt", &interest_points);
     if (count == -1) {
-        return EXIT_FAILURE;
+        goto cleanup;
     }
     qsort(interest_points, count, sizeof(InterestPoint),
           compare_interest_points);
@@ -702,16 +702,16 @@ int main(void) {
     int gloshaugen = GLOSHAUGEN_NODE;
     int wanted_type = 8 | 16;
 
-    NearbyPoint nearby_points[NEARBY_POINT_COUNT];
+    NearbyPoint gloshaugen_points[NEARBY_POINT_COUNT];
     int gloshaugen_found = find_nearest_interest_points(
         nodes, searchInfo, number_of_nodes, gloshaugen, interest_points, count,
-        wanted_type, NEARBY_POINT_COUNT, nearby_points);
+        wanted_type, NEARBY_POINT_COUNT, gloshaugen_points);
     for (int i = 0; i < gloshaugen_found; i++) {
-        printf("Gløshaugen %d. %s, node %d, tid %d\n", i + 1,
-               nearby_points[i].name, nearby_points[i].node_id,
-               nearby_points[i].distance);
+        printf("Gloshaugen %d. %s, node %d, time %d\n", i + 1,
+               gloshaugen_points[i].name, gloshaugen_points[i].node_id,
+               gloshaugen_points[i].distance);
     }
-    save_points_geojson("gloshaugen-points.geojson", nodes, nearby_points,
+    save_points_geojson("gloshaugen-points.geojson", nodes, gloshaugen_points,
                         gloshaugen_found);
 
     /* ODENSE */
@@ -721,26 +721,25 @@ int main(void) {
         nodes, searchInfo, number_of_nodes, ODENSE_NODE, interest_points, count,
         4, NEARBY_POINT_COUNT, odense_points);
     for (int i = 0; i < odense_found; i++) {
-        printf("Odense %d. %s, node %d, tid %d\n", i + 1, odense_points[i].name,
-               odense_points[i].node_id, odense_points[i].distance);
+        printf("Odense %d. %s, node %d, time %d\n", i + 1,
+               odense_points[i].name, odense_points[i].node_id,
+               odense_points[i].distance);
     }
     save_points_geojson("odense-points.geojson", nodes, odense_points,
                         odense_found);
 
-    /* LANDEMERKER */
+    /* LANDMARKS */
     int landmarks[LANDMARK_COUNT] = {OSLO_NODE, TRONDHEIM_NODE, KOBENHAVN_NODE,
                                      HELSINKI_NODE};
 
-    int *from_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
-    int *to_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
+    from_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
+    to_landmark = calloc(LANDMARK_COUNT * number_of_nodes, sizeof(int));
     if (from_landmark == NULL || to_landmark == NULL) {
         perror("Couldn't allocate memory for landmarks");
-        free(from_landmark);
-        free(to_landmark);
-        return EXIT_FAILURE;
+        goto cleanup;
     }
 
-    printf("\nDijkstra-søk:\n");
+    printf("\nDijkstra search:\n");
     run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE,
                OTILIENBORG_NODE, NULL, NULL,
                "dijkstra-gloshaugen-otilienborg.geojson");
@@ -754,12 +753,12 @@ int main(void) {
 
         if (load_landmarks("landmarks.bin", number_of_nodes, landmarks,
                            from_landmark, to_landmark) != 0) {
-            fprintf(stderr, "Kunne ikke laste landmark-data\n");
-            return EXIT_FAILURE;
+            fprintf(stderr, "Couldn't load landmark data\n");
+            goto cleanup;
         }
-        printf("Lastet landmarks.bin\n");
+        printf("\nLoaded landmarks.bin\n");
     } else {
-        printf("Beregner landmark-tabeller...\n");
+        printf("Calculating landmark tables...\n");
 
         for (int landmark_index = 0; landmark_index < LANDMARK_COUNT;
              landmark_index++) {
@@ -782,12 +781,12 @@ int main(void) {
 
         if (save_landmarks("landmarks.bin", number_of_nodes, landmarks,
                            from_landmark, to_landmark) != 0) {
-            fprintf(stderr, "Kunne ikke lagre landmark-data\n");
-            return EXIT_FAILURE;
+            fprintf(stderr, "Couldn't save landmark data\n");
+            goto cleanup;
         }
     }
 
-    printf("\nALT-søk:\n");
+    printf("\nALT search:\n");
     run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE,
                OTILIENBORG_NODE, from_landmark, to_landmark,
                "alt-gloshaugen-otilienborg.geojson");
@@ -795,16 +794,19 @@ int main(void) {
     run_search(nodes, searchInfo, number_of_nodes, GLOSHAUGEN_NODE, ODENSE_NODE,
                from_landmark, to_landmark, "alt-gloshaugen-odense.geojson");
 
-    // printf("Oslo -> Odense: %d\n", from_landmark[0 * number_of_nodes +
-    // 2763740]); printf("Gløshaugen -> Oslo: %d\n", to_landmark[0 *
-    // number_of_nodes + 2001238]);
+    exit_code = EXIT_SUCCESS;
 
+cleanup:
     for (int i = 0; i < count; i++) {
         free(interest_points[i].name);
     }
-
     free(interest_points);
-    fclose(edges_file);
+    if (nodes_file != NULL) {
+        fclose(nodes_file);
+    }
+    if (edges_file != NULL) {
+        fclose(edges_file);
+    }
     free(from_landmark);
     free(to_landmark);
     free(edges);
@@ -813,5 +815,5 @@ int main(void) {
     free(nodes);
     free(reversed_nodes);
 
-    return EXIT_SUCCESS;
+    return exit_code;
 }
