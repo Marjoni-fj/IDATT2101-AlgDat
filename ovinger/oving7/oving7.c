@@ -118,7 +118,7 @@ void pushToHeap(MinHeap *heap, int node_id, int priority) {
             realloc(heap->elements, new_capacity * sizeof(HeapElement));
 
         if (new_elements == NULL) {
-            fprintf(stderr, "Kunne ikke utvide heapen\n");
+            fprintf(stderr, "Couldn't grow the heap\n");
             exit(EXIT_FAILURE);
         }
 
@@ -274,7 +274,7 @@ void save_route_geojson(const char *filename, Node *nodes, int *route,
     FILE *file = fopen(filename, "w");
 
     if (file == NULL) {
-        perror("Couldn't create GeoJSON-fil");
+        perror("Couldn't create GeoJSON file");
         return;
     }
 
@@ -303,7 +303,7 @@ void save_points_geojson(const char *filename, Node *nodes, NearbyPoint *points,
     FILE *file = fopen(filename, "w");
 
     if (file == NULL) {
-        perror("Couldn't create POI-GeoJSON");
+        perror("Couldn't create point GeoJSON file");
         return;
     }
 
@@ -359,7 +359,7 @@ void run_search(Node *nodes, SearchInfo *searchInfo, int number_of_nodes,
     int *route =
         findRoute(searchInfo, number_of_nodes, start, target, &route_length);
     if (route == NULL) {
-        fprintf(stderr, "Kunne ikke lage rute\n");
+        fprintf(stderr, "Couldn't build route\n");
         return;
     }
 
@@ -543,7 +543,7 @@ int save_landmarks(const char *filename, int number_of_nodes, int *landmarks,
             LANDMARK_COUNT ||
         fwrite(from_landmark, sizeof(int), table_size, file) != table_size ||
         fwrite(to_landmark, sizeof(int), table_size, file) != table_size) {
-        fprintf(stderr, "Couldn't write landmark-data\n");
+        fprintf(stderr, "Couldn't write landmark data\n");
         fclose(file);
         return -1;
     }
@@ -555,7 +555,7 @@ int load_landmarks(const char *filename, int number_of_nodes, int *landmarks,
                    int *from_landmark, int *to_landmark) {
     FILE *file = fopen(filename, "rb");
     if (file == NULL) {
-        perror("Couldn't open landmark-fil");
+        perror("Couldn't open landmark file");
         return -1;
     }
     int stored_number_of_nodes;
@@ -570,14 +570,14 @@ int load_landmarks(const char *filename, int number_of_nodes, int *landmarks,
         return -1;
     }
     if (fread(landmarks, sizeof(int), LANDMARK_COUNT, file) != LANDMARK_COUNT) {
-        fprintf(stderr, "Couldn't read landemarks\n");
+        fprintf(stderr, "Couldn't read landmarks\n");
         fclose(file);
         return -1;
     }
     size_t table_size = LANDMARK_COUNT * (size_t)number_of_nodes;
     if (fread(from_landmark, sizeof(int), table_size, file) != table_size ||
         fread(to_landmark, sizeof(int), table_size, file) != table_size) {
-        fprintf(stderr, "Couldn't read landmark-tabel\n");
+        fprintf(stderr, "Couldn't read landmark table\n");
         fclose(file);
         return -1;
     }
